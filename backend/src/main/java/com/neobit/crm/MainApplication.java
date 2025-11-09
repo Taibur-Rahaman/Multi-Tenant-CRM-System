@@ -7,7 +7,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class MainApplication {
     public static void main(String[] args) {
         SpringApplication.run(MainApplication.class, args);
-        System.out.println("🚀 Multi-Tenant CRM Backend Running...");
+        System.out.println("CRM Backend Running...");
     }
 }
-
