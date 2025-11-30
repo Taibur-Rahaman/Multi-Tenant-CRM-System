@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  
+  flyway:
+    enabled: false
+  
+  elasticsearch:
+    uris: http://localhost:9200
+
+jwt:
+  secret: test-secret-key-for-testing-purposes-only-must-be-256-bits
+  access-token-expiration: 900000
+  refresh-token-expiration: 604800000
+
+app:
+  cors:
+    allowed-origins: http://localhost:5173
+  ai-service:
+    url: http://localhost:8001
+

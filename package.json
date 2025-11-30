@@ -1,0 +1,33 @@
+{
+  "name": "multi-tenant-crm-system",
+  "version": "1.0.0",
+  "description": "Multi-Tenant CRM System with AI Integration",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:ai\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && ./mvnw spring-boot:run",
+    "dev:ai": "cd ai-service && uvicorn app.main:app --reload --host 0.0.0.0 --port 8001",
+    "install:all": "npm run install:frontend && npm run install:ai",
+    "install:frontend": "cd frontend && npm install",
+    "install:ai": "cd ai-service && pip install -r requirements.txt",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && ./mvnw clean package -DskipTests",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:build": "docker-compose build",
+    "db:start": "docker-compose up -d postgres",
+    "test:backend": "cd backend && ./mvnw test",
+    "test:frontend": "cd frontend && npm test",
+    "lint:frontend": "cd frontend && npm run lint"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "Neobit",
+  "license": "MIT"
+}
+

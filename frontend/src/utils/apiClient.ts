@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { useAuthStore } from '../store/authStore';
 
-const API_BASE = process.env.VITE_API_BASE || 'https://api.example.com/v1';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api';
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -9,10 +10,16 @@ const api = axios.create({
   }
 });
 
-// Attach token if available
+// Attach token from store or localStorage
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
-  if (token && config.headers) config.headers['Authorization'] = `Bearer ${token}`;
+  try {
+    const token = useAuthStore.getState().accessToken || localStorage.getItem('access_token')
+    if (token && config.headers) config.headers['Authorization'] = `Bearer ${token}`;
+  } catch (e) {
+    // fallback
+    const token = localStorage.getItem('access_token')
+    if (token && config.headers) config.headers['Authorization'] = `Bearer ${token}`;
+  }
   return config;
 });
 

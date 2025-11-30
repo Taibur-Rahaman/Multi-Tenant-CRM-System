@@ -1,20 +1,39 @@
-# Use Java 17
-FROM openjdk:17-jdk-slim
+# Multi-stage build for Spring Boot Backend
 
-# Set workdir
+# Stage 1: Build
+FROM maven:3.9-eclipse-temurin-21-alpine AS builder
+
 WORKDIR /app
 
-# Copy pom.xml first for dependency caching
+# Copy pom.xml and download dependencies
 COPY pom.xml .
+RUN mvn dependency:go-offline -B
 
-# Download dependencies
-RUN ./mvnw dependency:go-offline || true
-
-# Copy all project files
+# Copy source code and build
 COPY src ./src
+RUN mvn clean package -DskipTests -B
 
-# Package the app
-RUN ./mvnw clean package -DskipTests
+# Stage 2: Runtime
+FROM eclipse-temurin:21-jre-alpine
 
-# Run Spring Boot app
-CMD ["java", "-jar", "target/backend-1.0-SNAPSHOT.jar"]
+WORKDIR /app
+
+# Add non-root user for security
+RUN addgroup -S spring && adduser -S spring -G spring
+USER spring:spring
+
+# Copy the built JAR
+COPY --from=builder /app/target/*.jar app.jar
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+  CMD wget -qO- http://localhost:8080/api/actuator/health || exit 1
+
+# Expose port
+EXPOSE 8080
+
+# JVM options for containers
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC"
+
+# Run the application
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

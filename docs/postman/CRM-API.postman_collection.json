@@ -1,0 +1,484 @@
+{
+  "info": {
+    "name": "Multi-Tenant CRM API",
+    "description": "Complete API collection for the Multi-Tenant CRM System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080/api"
+    },
+    {
+      "key": "ai_service_url",
+      "value": "http://localhost:8001"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data) {",
+                  "    pm.collectionVariables.set('access_token', jsonData.data.accessToken);",
+                  "    pm.collectionVariables.set('refresh_token', jsonData.data.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@demo.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{base_url}}/auth/login"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": "{{base_url}}/auth/refresh"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": "{{base_url}}/auth/logout"
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/users/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/dashboard/stats"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "List Customers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/customers?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["customers"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Customer by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/customers/{{customer_id}}"
+          }
+        },
+        {
+          "name": "Create Customer",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+1234567890\",\n  \"jobTitle\": \"CTO\",\n  \"leadSource\": \"website\",\n  \"leadStatus\": \"new\"\n}"
+            },
+            "url": "{{base_url}}/customers"
+          }
+        },
+        {
+          "name": "Update Customer",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"leadStatus\": \"contacted\"\n}"
+            },
+            "url": "{{base_url}}/customers/{{customer_id}}"
+          }
+        },
+        {
+          "name": "Delete Customer",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/customers/{{customer_id}}"
+          }
+        },
+        {
+          "name": "Search Customers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/customers/search?q=john",
+              "host": ["{{base_url}}"],
+              "path": ["customers", "search"],
+              "query": [{"key": "q", "value": "john"}]
+            }
+          }
+        },
+        {
+          "name": "Get Leads",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/customers/leads"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Accounts",
+      "item": [
+        {
+          "name": "List Accounts",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/accounts"
+          }
+        },
+        {
+          "name": "Create Account",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Corporation\",\n  \"industry\": \"Technology\",\n  \"website\": \"https://acme.com\",\n  \"phone\": \"+1234567890\"\n}"
+            },
+            "url": "{{base_url}}/accounts"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Interactions",
+      "item": [
+        {
+          "name": "List Interactions",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/interactions"
+          }
+        },
+        {
+          "name": "Get Customer Interactions",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/interactions/customer/{{customer_id}}"
+          }
+        },
+        {
+          "name": "Create Interaction",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"{{customer_id}}\",\n  \"type\": \"CALL\",\n  \"direction\": \"OUTBOUND\",\n  \"status\": \"COMPLETED\",\n  \"subject\": \"Follow-up call\",\n  \"description\": \"Discussed product features\",\n  \"durationSeconds\": 300\n}"
+            },
+            "url": "{{base_url}}/interactions"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "List Tasks",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/tasks"
+          }
+        },
+        {
+          "name": "Get My Tasks",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/tasks/my-tasks"
+          }
+        },
+        {
+          "name": "Create Task",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Follow up with lead\",\n  \"description\": \"Send proposal document\",\n  \"priority\": \"HIGH\",\n  \"dueDate\": \"2025-12-15T10:00:00Z\",\n  \"customerId\": \"{{customer_id}}\"\n}"
+            },
+            "url": "{{base_url}}/tasks"
+          }
+        },
+        {
+          "name": "Complete Task",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/tasks/{{task_id}}/complete"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Integrations - Gmail",
+      "item": [
+        {
+          "name": "List Emails",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/integrations/gmail/messages?maxResults=20",
+              "host": ["{{base_url}}"],
+              "path": ["integrations", "gmail", "messages"],
+              "query": [{"key": "maxResults", "value": "20"}]
+            }
+          }
+        },
+        {
+          "name": "Send Email",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"recipient@example.com\",\n  \"subject\": \"Meeting Follow-up\",\n  \"body\": \"Thank you for your time today.\",\n  \"isHtml\": false\n}"
+            },
+            "url": "{{base_url}}/integrations/gmail/send"
+          }
+        },
+        {
+          "name": "Sync Emails",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/integrations/gmail/sync"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Integrations - Calendar",
+      "item": [
+        {
+          "name": "List Calendar Events",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/integrations/calendar/events"
+          }
+        },
+        {
+          "name": "Create Calendar Event",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"summary\": \"Sales Meeting\",\n  \"description\": \"Discuss Q1 targets\",\n  \"start\": \"2025-12-15T10:00:00Z\",\n  \"end\": \"2025-12-15T11:00:00Z\",\n  \"attendees\": [\"attendee@example.com\"]\n}"
+            },
+            "url": "{{base_url}}/integrations/calendar/events"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Integrations - Telegram",
+      "item": [
+        {
+          "name": "Send Telegram Message",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatId\": 123456789,\n  \"text\": \"Hello from CRM!\"\n}"
+            },
+            "url": "{{base_url}}/integrations/telegram/send"
+          }
+        },
+        {
+          "name": "Get Bot Info",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/integrations/telegram/bot"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Integrations - Jira",
+      "item": [
+        {
+          "name": "Create Jira Issue",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectKey\": \"CRM\",\n  \"summary\": \"Customer complaint\",\n  \"description\": \"Customer reported issue with billing\",\n  \"issueType\": \"Bug\",\n  \"priority\": \"High\"\n}"
+            },
+            "url": "{{base_url}}/integrations/jira/issues"
+          }
+        },
+        {
+          "name": "Search Jira Issues",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/integrations/jira/search?jql=project=CRM",
+              "host": ["{{base_url}}"],
+              "path": ["integrations", "jira", "search"],
+              "query": [{"key": "jql", "value": "project=CRM"}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Integrations - Telephony",
+      "item": [
+        {
+          "name": "Initiate Call",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"toNumber\": \"+1234567890\",\n  \"customerId\": \"{{customer_id}}\",\n  \"recordCall\": false\n}"
+            },
+            "url": "{{base_url}}/integrations/telephony/call"
+          }
+        },
+        {
+          "name": "List Recent Calls",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/integrations/telephony/calls"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI Service",
+      "item": [
+        {
+          "name": "Chat with AI",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"What are my top leads this week?\",\n  \"conversation_id\": null\n}"
+            },
+            "url": "{{ai_service_url}}/chat"
+          }
+        },
+        {
+          "name": "Summarize Email",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Long email content here...\",\n  \"type\": \"email\"\n}"
+            },
+            "url": "{{ai_service_url}}/summarize"
+          }
+        },
+        {
+          "name": "Get Lead Insights",
+          "request": {
+            "method": "GET",
+            "url": "{{ai_service_url}}/insights/leads"
+          }
+        },
+        {
+          "name": "Meeting Preparation",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"{{customer_id}}\",\n  \"meeting_type\": \"sales\"\n}"
+            },
+            "url": "{{ai_service_url}}/insights/meeting-prep"
+          }
+        },
+        {
+          "name": "Speech to Text",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "multipart/form-data"}],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {"key": "audio", "type": "file", "src": ""}
+              ]
+            },
+            "url": "{{ai_service_url}}/voice/transcribe"
+          }
+        },
+        {
+          "name": "Text to Speech",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Your meeting with John Doe is in 30 minutes.\",\n  \"voice\": \"alloy\"\n}"
+            },
+            "url": "{{ai_service_url}}/voice/synthesize"
+          }
+        }
+      ]
+    }
+  ]
+}
