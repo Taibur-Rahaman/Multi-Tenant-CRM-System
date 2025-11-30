@@ -146,6 +146,22 @@ services:
     networks:
       - crm-network
 
+  # MCP Server (Model Context Protocol)
+  mcp-server:
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile
+    container_name: crm-mcp-server
+    restart: unless-stopped
+    environment:
+      - MCP_CRM_API_URL=http://backend:8080/api
+      - MCP_API_TOKEN=${MCP_API_TOKEN}
+      - MCP_TENANT_ID=${MCP_TENANT_ID}
+    depends_on:
+      - backend
+    networks:
+      - crm-network
+
 volumes:
   postgres_data:
   elasticsearch_data:

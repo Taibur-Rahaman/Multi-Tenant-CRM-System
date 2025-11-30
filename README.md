@@ -20,6 +20,7 @@ A comprehensive, AI-powered Customer Relationship Management system with multi-t
 - [x] **Automation Engine**: Auto-lead creation, complaint detection
 - [x] **Lead Scoring**: AI-powered lead prioritization
 - [x] **Meeting Preparation**: AI-generated briefing notes
+- [x] **MCP Server**: Model Context Protocol integration for AI assistants
 
 ## 📁 Project Structure
 
@@ -57,6 +58,13 @@ Multi-Tenant-CRM-System/
 │   │   ├── routers/         # API Routes
 │   │   ├── services/        # Business Logic
 │   │   └── middleware/      # Auth & Tenant
+│   ├── Dockerfile
+│   └── requirements.txt
+│
+├── mcp-server/              # MCP Server (Model Context Protocol)
+│   ├── server.py            # Main MCP Server
+│   ├── crm_client.py        # CRM API Client
+│   ├── config.py            # Configuration
 │   ├── Dockerfile
 │   └── requirements.txt
 │
@@ -160,6 +168,43 @@ uvicorn app.main:app --reload --port 8001
 - **Swagger UI**: http://localhost:8080/api/swagger-ui.html
 - **API Docs**: See [docs/API.md](docs/API.md)
 - **Postman Collection**: [docs/postman/](docs/postman/)
+
+## 🤖 MCP Server Integration
+
+The project includes an MCP (Model Context Protocol) server that allows AI assistants to interact with your CRM data.
+
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `list_customers` | List all customers with pagination |
+| `search_customers` | Search customers by name/email/company |
+| `create_customer` | Create a new customer |
+| `list_tasks` | List tasks with filters |
+| `create_task` | Create a new task |
+| `log_interaction` | Log customer interactions |
+| `get_dashboard_stats` | Get CRM metrics |
+
+### Setup with Claude Desktop
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "crm": {
+      "command": "python",
+      "args": ["/path/to/mcp-server/server.py"],
+      "env": {
+        "MCP_CRM_API_URL": "http://localhost:8080/api",
+        "MCP_API_TOKEN": "your-jwt-token"
+      }
+    }
+  }
+}
+```
+
+See [mcp-server/README.md](mcp-server/README.md) for detailed MCP setup instructions.
 
 ## 🏗️ Architecture
 

@@ -1,0 +1,51 @@
+{
+  "_comment": "Copy this configuration to your MCP client settings",
+  
+  "claude_desktop_config": {
+    "_location": "~/Library/Application Support/Claude/claude_desktop_config.json (macOS)",
+    "_location_windows": "%APPDATA%/Claude/claude_desktop_config.json",
+    "mcpServers": {
+      "crm": {
+        "command": "python",
+        "args": ["/full/path/to/mcp-server/server.py"],
+        "env": {
+          "MCP_CRM_API_URL": "http://localhost:8080/api",
+          "MCP_API_TOKEN": "your-jwt-token",
+          "MCP_TENANT_ID": "your-tenant-id"
+        }
+      }
+    }
+  },
+
+  "cursor_config": {
+    "_location": ".cursor/mcp.json in your project root",
+    "mcpServers": {
+      "crm": {
+        "command": "python",
+        "args": ["server.py"],
+        "cwd": "./mcp-server",
+        "env": {
+          "MCP_CRM_API_URL": "http://localhost:8080/api",
+          "MCP_API_TOKEN": "your-jwt-token",
+          "MCP_TENANT_ID": "your-tenant-id"
+        }
+      }
+    }
+  },
+
+  "vscode_continue_config": {
+    "_location": "~/.continue/config.json",
+    "mcpServers": [
+      {
+        "name": "crm",
+        "command": "python",
+        "args": ["/full/path/to/mcp-server/server.py"],
+        "env": {
+          "MCP_CRM_API_URL": "http://localhost:8080/api",
+          "MCP_API_TOKEN": "your-jwt-token"
+        }
+      }
+    ]
+  }
+}
+
