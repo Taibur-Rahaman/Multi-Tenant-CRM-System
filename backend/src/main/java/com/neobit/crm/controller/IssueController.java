@@ -122,18 +122,58 @@ public class IssueController {
         return ResponseEntity.ok(ApiResponse.success("Issue deleted successfully", null));
     }
 
+    @GetMapping("/sync/status")
+    @Operation(summary = "Get sync status for Jira and Linear integrations")
+    public ResponseEntity<ApiResponse<IssueService.IssuesSyncStatus>> getSyncStatus() {
+        IssueService.IssuesSyncStatus status = issueService.getSyncStatus();
+        return ResponseEntity.ok(ApiResponse.success("Sync status retrieved", status));
+    }
+
     @PostMapping("/sync/jira")
     @Operation(summary = "Sync issues from Jira")
-    public ResponseEntity<ApiResponse<Void>> syncFromJira() {
-        issueService.syncFromJira();
-        return ResponseEntity.ok(ApiResponse.success("Jira sync initiated", null));
+    public ResponseEntity<ApiResponse<Map<String, Object>>> syncFromJira() {
+        int count = issueService.syncFromJira();
+        return ResponseEntity.ok(ApiResponse.success(
+            "Jira sync completed", 
+            Map.of("syncedCount", count, "provider", "jira")
+        ));
     }
 
     @PostMapping("/sync/linear")
     @Operation(summary = "Sync issues from Linear")
-    public ResponseEntity<ApiResponse<Void>> syncFromLinear() {
-        issueService.syncFromLinear();
-        return ResponseEntity.ok(ApiResponse.success("Linear sync initiated", null));
+    public ResponseEntity<ApiResponse<Map<String, Object>>> syncFromLinear() {
+        int count = issueService.syncFromLinear();
+        return ResponseEntity.ok(ApiResponse.success(
+            "Linear sync completed",
+            Map.of("syncedCount", count, "provider", "linear")
+        ));
+    }
+
+    @PostMapping("/sync/all")
+    @Operation(summary = "Sync issues from all configured providers")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> syncFromAll() {
+        int jiraCount = 0;
+        int linearCount = 0;
+        
+        try {
+            jiraCount = issueService.syncFromJira();
+        } catch (Exception e) {
+            // Jira not configured or sync failed
+        }
+        
+        try {
+            linearCount = issueService.syncFromLinear();
+        } catch (Exception e) {
+            // Linear not configured or sync failed
+        }
+        
+        return ResponseEntity.ok(ApiResponse.success(
+            "Sync completed",
+            Map.of(
+                "jiraSynced", jiraCount,
+                "linearSynced", linearCount,
+                "totalSynced", jiraCount + linearCount
+            )
+        ));
     }
 }
-
