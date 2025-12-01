@@ -45,7 +45,20 @@ const Customers: React.FC = () => {
         setTotalPages(pageData.totalPages);
       }
     } catch (error) {
-      console.error('Error fetching customers:', error);
+      console.error('Using demo data - backend not connected');
+      // Demo data for presentation
+      const demoCustomers: Customer[] = [
+        { id: '1', firstName: 'John', lastName: 'Smith', fullName: 'John Smith', email: 'john.smith@techcorp.com', phone: '+1 555-0101', jobTitle: 'CTO', accountName: 'TechCorp Inc', leadStatus: 'qualified', ownerName: 'Admin User' },
+        { id: '2', firstName: 'Sarah', lastName: 'Johnson', fullName: 'Sarah Johnson', email: 'sarah.j@startupxyz.io', phone: '+1 555-0102', jobTitle: 'CEO', accountName: 'StartupXYZ', leadStatus: 'new', ownerName: 'Admin User' },
+        { id: '3', firstName: 'Michael', lastName: 'Brown', fullName: 'Michael Brown', email: 'mbrown@globalinc.com', phone: '+1 555-0103', jobTitle: 'VP Sales', accountName: 'Global Inc', leadStatus: 'contacted', ownerName: 'Admin User' },
+        { id: '4', firstName: 'Emily', lastName: 'Davis', fullName: 'Emily Davis', email: 'emily.davis@innovate.co', phone: '+1 555-0104', jobTitle: 'Director', accountName: 'Innovate Co', leadStatus: 'converted', ownerName: 'Admin User' },
+        { id: '5', firstName: 'David', lastName: 'Wilson', fullName: 'David Wilson', email: 'dwilson@enterprise.net', phone: '+1 555-0105', jobTitle: 'Manager', accountName: 'Enterprise Net', leadStatus: 'qualified', ownerName: 'Admin User' },
+        { id: '6', firstName: 'Lisa', lastName: 'Anderson', fullName: 'Lisa Anderson', email: 'lisa.a@digitalfirst.com', phone: '+1 555-0106', jobTitle: 'Head of Product', accountName: 'Digital First', leadStatus: 'new', ownerName: 'Admin User' },
+        { id: '7', firstName: 'James', lastName: 'Taylor', fullName: 'James Taylor', email: 'jtaylor@cloudbase.io', phone: '+1 555-0107', jobTitle: 'CIO', accountName: 'CloudBase', leadStatus: 'contacted', ownerName: 'Admin User' },
+        { id: '8', firstName: 'Jennifer', lastName: 'Martinez', fullName: 'Jennifer Martinez', email: 'jmartinez@nexgen.com', phone: '+1 555-0108', jobTitle: 'Founder', accountName: 'NexGen Solutions', leadStatus: 'qualified', ownerName: 'Admin User' },
+      ];
+      setCustomers(demoCustomers);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }

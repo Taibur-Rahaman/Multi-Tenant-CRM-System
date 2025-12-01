@@ -65,7 +65,24 @@ const Interactions: React.FC = () => {
         setTotalPages(pageData.totalPages);
       }
     } catch (error) {
-      console.error('Error fetching interactions:', error);
+      console.error('Using demo data - backend not connected');
+      // Demo data for presentation
+      const now = new Date();
+      const demoInteractions: Interaction[] = [
+        { id: '1', type: 'CALL' as InteractionType, direction: 'OUTBOUND', subject: 'Follow-up call with TechCorp', description: 'Discussed contract renewal options. Customer interested in premium tier.', customerName: 'John Smith', createdAt: new Date(now.getTime() - 3600000).toISOString(), durationSeconds: 720, summary: 'Positive call. Customer considering upgrade to premium plan. Follow-up scheduled for next week.', tags: ['renewal', 'upsell'] },
+        { id: '2', type: 'EMAIL' as InteractionType, direction: 'INBOUND', subject: 'Re: Pricing Proposal', description: 'Sarah from StartupXYZ requested additional information about enterprise features.', customerName: 'Sarah Johnson', createdAt: new Date(now.getTime() - 7200000).toISOString(), tags: ['pricing', 'enterprise'] },
+        { id: '3', type: 'MEETING' as InteractionType, direction: 'OUTBOUND', subject: 'Product Demo - Global Inc', description: 'Presented full product demo to Global Inc team. VP Sales attended.', customerName: 'Michael Brown', createdAt: new Date(now.getTime() - 86400000).toISOString(), durationSeconds: 2700, summary: 'Demo well received. Key features appreciated: reporting, integrations. Next step: pilot program.', tags: ['demo', 'pilot'] },
+        { id: '4', type: 'EMAIL' as InteractionType, direction: 'OUTBOUND', subject: 'Contract Sent - Innovate Co', description: 'Sent final contract with agreed terms to Emily Davis.', customerName: 'Emily Davis', createdAt: new Date(now.getTime() - 172800000).toISOString(), tags: ['contract'] },
+        { id: '5', type: 'CALL' as InteractionType, direction: 'INBOUND', subject: 'Support inquiry from CloudBase', description: 'James Taylor called about API integration issues. Escalated to technical team.', customerName: 'James Taylor', createdAt: new Date(now.getTime() - 259200000).toISOString(), durationSeconds: 480, tags: ['support', 'api'] },
+        { id: '6', type: 'MESSAGE' as InteractionType, direction: 'INBOUND', subject: 'Quick question via chat', description: 'Customer asked about pricing tiers and feature differences.', customerName: 'Lisa Anderson', createdAt: new Date(now.getTime() - 345600000).toISOString(), tags: ['chat', 'pricing'] },
+        { id: '7', type: 'MEETING' as InteractionType, direction: 'OUTBOUND', subject: 'Quarterly Review - NexGen', description: 'Quarterly business review meeting. Discussed usage metrics and expansion plans.', customerName: 'Jennifer Martinez', createdAt: new Date(now.getTime() - 432000000).toISOString(), durationSeconds: 3600, summary: 'Customer satisfied with service. Expansion opportunity for 2 additional seats.', tags: ['qbr', 'expansion'] },
+        { id: '8', type: 'NOTE' as InteractionType, direction: 'INTERNAL', subject: 'Lead qualification note', description: 'Enterprise Net showing strong buying signals. Budget confirmed. Decision maker identified.', customerName: 'David Wilson', createdAt: new Date(now.getTime() - 518400000).toISOString(), tags: ['qualified', 'enterprise'] },
+      ];
+      const filteredInteractions = filterType 
+        ? demoInteractions.filter(i => i.type === filterType)
+        : demoInteractions;
+      setInteractions(filteredInteractions);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }

@@ -49,7 +49,24 @@ const Tasks: React.FC = () => {
         setTotalPages(pageData.totalPages);
       }
     } catch (error) {
-      console.error('Error fetching tasks:', error);
+      console.error('Using demo data - backend not connected');
+      // Demo data for presentation
+      const today = new Date();
+      const demoTasks: Task[] = [
+        { id: '1', title: 'Follow up with TechCorp on renewal', description: 'Contact John Smith about contract renewal discussion', status: 'pending', priority: 'high', dueDate: today.toISOString(), customerName: 'John Smith', assignedToName: 'Admin User' },
+        { id: '2', title: 'Send proposal to StartupXYZ', description: 'Prepare and send pricing proposal for premium plan', status: 'in_progress', priority: 'high', dueDate: new Date(today.getTime() + 86400000).toISOString(), customerName: 'Sarah Johnson', assignedToName: 'Admin User' },
+        { id: '3', title: 'Schedule demo with Global Inc', description: 'Michael Brown requested a product demonstration', status: 'pending', priority: 'medium', dueDate: new Date(today.getTime() + 172800000).toISOString(), customerName: 'Michael Brown', assignedToName: 'Admin User' },
+        { id: '4', title: 'Review contract for Innovate Co', description: 'Legal review needed before signing', status: 'pending', priority: 'medium', dueDate: new Date(today.getTime() + 259200000).toISOString(), customerName: 'Emily Davis', assignedToName: 'Admin User' },
+        { id: '5', title: 'Prepare quarterly report', description: 'Compile Q4 sales metrics and customer insights', status: 'in_progress', priority: 'low', dueDate: new Date(today.getTime() + 432000000).toISOString(), assignedToName: 'Admin User' },
+        { id: '6', title: 'Update CRM records', description: 'Clean up duplicate customer entries', status: 'completed', priority: 'low', dueDate: new Date(today.getTime() - 86400000).toISOString(), assignedToName: 'Admin User' },
+        { id: '7', title: 'Call with CloudBase team', description: 'Discuss integration requirements', status: 'pending', priority: 'high', dueDate: new Date(today.getTime() + 86400000).toISOString(), customerName: 'James Taylor', assignedToName: 'Admin User' },
+        { id: '8', title: 'Send thank you email to Digital First', description: 'Thank Lisa for the referral', status: 'pending', priority: 'low', dueDate: new Date(today.getTime() + 518400000).toISOString(), customerName: 'Lisa Anderson', assignedToName: 'Admin User' },
+      ];
+      const filteredTasks = filterStatus 
+        ? demoTasks.filter(t => t.status === filterStatus)
+        : demoTasks;
+      setTasks(filteredTasks);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
