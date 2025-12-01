@@ -9,7 +9,9 @@ import {
   Building2,
   Edit,
   Trash2,
-  Eye
+  Eye,
+  X,
+  Loader2
 } from 'lucide-react';
 import { customersApi } from '../services/api';
 import type { Customer, PageResponse } from '../types';
@@ -39,11 +41,13 @@ const Customers: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [showModal, setShowModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [formData, setFormData] = useState<CustomerFormData>({
     firstName: '', lastName: '', email: '', phone: '', jobTitle: '', company: '', leadStatus: 'new'
   });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchCustomers();
@@ -57,21 +61,26 @@ const Customers: React.FC = () => {
         const pageData = response.data.data as PageResponse<Customer>;
         setCustomers(pageData.content);
         setTotalPages(pageData.totalPages);
+        // Store in localStorage for offline/demo mode
+        localStorage.setItem('crm_customers', JSON.stringify(pageData.content));
       }
     } catch (error) {
-      console.error('Using demo data - backend not connected');
-      // Demo data for presentation
-      const demoCustomers: Customer[] = [
-        { id: '1', firstName: 'John', lastName: 'Smith', fullName: 'John Smith', email: 'john.smith@techcorp.com', phone: '+1 555-0101', jobTitle: 'CTO', accountName: 'TechCorp Inc', leadStatus: 'qualified', ownerName: 'Admin User' },
-        { id: '2', firstName: 'Sarah', lastName: 'Johnson', fullName: 'Sarah Johnson', email: 'sarah.j@startupxyz.io', phone: '+1 555-0102', jobTitle: 'CEO', accountName: 'StartupXYZ', leadStatus: 'new', ownerName: 'Admin User' },
-        { id: '3', firstName: 'Michael', lastName: 'Brown', fullName: 'Michael Brown', email: 'mbrown@globalinc.com', phone: '+1 555-0103', jobTitle: 'VP Sales', accountName: 'Global Inc', leadStatus: 'contacted', ownerName: 'Admin User' },
-        { id: '4', firstName: 'Emily', lastName: 'Davis', fullName: 'Emily Davis', email: 'emily.davis@innovate.co', phone: '+1 555-0104', jobTitle: 'Director', accountName: 'Innovate Co', leadStatus: 'converted', ownerName: 'Admin User' },
-        { id: '5', firstName: 'David', lastName: 'Wilson', fullName: 'David Wilson', email: 'dwilson@enterprise.net', phone: '+1 555-0105', jobTitle: 'Manager', accountName: 'Enterprise Net', leadStatus: 'qualified', ownerName: 'Admin User' },
-        { id: '6', firstName: 'Lisa', lastName: 'Anderson', fullName: 'Lisa Anderson', email: 'lisa.a@digitalfirst.com', phone: '+1 555-0106', jobTitle: 'Head of Product', accountName: 'Digital First', leadStatus: 'new', ownerName: 'Admin User' },
-        { id: '7', firstName: 'James', lastName: 'Taylor', fullName: 'James Taylor', email: 'jtaylor@cloudbase.io', phone: '+1 555-0107', jobTitle: 'CIO', accountName: 'CloudBase', leadStatus: 'contacted', ownerName: 'Admin User' },
-        { id: '8', firstName: 'Jennifer', lastName: 'Martinez', fullName: 'Jennifer Martinez', email: 'jmartinez@nexgen.com', phone: '+1 555-0108', jobTitle: 'Founder', accountName: 'NexGen Solutions', leadStatus: 'qualified', ownerName: 'Admin User' },
-      ];
-      setCustomers(demoCustomers);
+      console.log('Using local storage data');
+      // Load from localStorage or use demo data
+      const stored = localStorage.getItem('crm_customers');
+      if (stored) {
+        setCustomers(JSON.parse(stored));
+      } else {
+        const demoCustomers: Customer[] = [
+          { id: '1', firstName: 'John', lastName: 'Smith', fullName: 'John Smith', email: 'john.smith@techcorp.com', phone: '+1 555-0101', jobTitle: 'CTO', accountName: 'TechCorp Inc', leadStatus: 'qualified', ownerName: 'Admin User' },
+          { id: '2', firstName: 'Sarah', lastName: 'Johnson', fullName: 'Sarah Johnson', email: 'sarah.j@startupxyz.io', phone: '+1 555-0102', jobTitle: 'CEO', accountName: 'StartupXYZ', leadStatus: 'new', ownerName: 'Admin User' },
+          { id: '3', firstName: 'Michael', lastName: 'Brown', fullName: 'Michael Brown', email: 'mbrown@globalinc.com', phone: '+1 555-0103', jobTitle: 'VP Sales', accountName: 'Global Inc', leadStatus: 'contacted', ownerName: 'Admin User' },
+          { id: '4', firstName: 'Emily', lastName: 'Davis', fullName: 'Emily Davis', email: 'emily.davis@innovate.co', phone: '+1 555-0104', jobTitle: 'Director', accountName: 'Innovate Co', leadStatus: 'converted', ownerName: 'Admin User' },
+          { id: '5', firstName: 'David', lastName: 'Wilson', fullName: 'David Wilson', email: 'dwilson@enterprise.net', phone: '+1 555-0105', jobTitle: 'Manager', accountName: 'Enterprise Net', leadStatus: 'qualified', ownerName: 'Admin User' },
+        ];
+        setCustomers(demoCustomers);
+        localStorage.setItem('crm_customers', JSON.stringify(demoCustomers));
+      }
       setTotalPages(1);
     } finally {
       setLoading(false);
@@ -83,8 +92,8 @@ const Customers: React.FC = () => {
       fetchCustomers();
       return;
     }
+    setLoading(true);
     try {
-      setLoading(true);
       const response = await customersApi.search(searchQuery, { page: 0, size: 10 });
       if (response.data.success) {
         const pageData = response.data.data as PageResponse<Customer>;
@@ -92,7 +101,17 @@ const Customers: React.FC = () => {
         setTotalPages(pageData.totalPages);
       }
     } catch (error) {
-      console.error('Error searching customers:', error);
+      // Local search
+      const stored = localStorage.getItem('crm_customers');
+      if (stored) {
+        const all = JSON.parse(stored) as Customer[];
+        const filtered = all.filter(c => 
+          c.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          c.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          c.accountName?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        setCustomers(filtered);
+      }
     } finally {
       setLoading(false);
     }
@@ -104,14 +123,21 @@ const Customers: React.FC = () => {
       await customersApi.delete(id);
       fetchCustomers();
     } catch (error) {
-      // Demo mode - remove from local state
-      setCustomers(prev => prev.filter(c => c.id !== id));
+      // Delete from local storage
+      const stored = localStorage.getItem('crm_customers');
+      if (stored) {
+        const all = JSON.parse(stored) as Customer[];
+        const filtered = all.filter(c => c.id !== id);
+        localStorage.setItem('crm_customers', JSON.stringify(filtered));
+        setCustomers(filtered);
+      }
     }
   };
 
   const openCreateModal = () => {
     setSelectedCustomer(null);
     setFormData({ firstName: '', lastName: '', email: '', phone: '', jobTitle: '', company: '', leadStatus: 'new' });
+    setError('');
     setShowModal(true);
   };
 
@@ -126,11 +152,24 @@ const Customers: React.FC = () => {
       company: customer.accountName || '',
       leadStatus: customer.leadStatus || 'new'
     });
+    setError('');
     setShowModal(true);
   };
 
+  const openViewModal = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setShowViewModal(true);
+  };
+
   const handleSave = async () => {
+    if (!formData.firstName || !formData.lastName || !formData.email) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
     setSaving(true);
+    setError('');
+
     try {
       if (selectedCustomer) {
         await customersApi.update(selectedCustomer.id, formData);
@@ -140,13 +179,18 @@ const Customers: React.FC = () => {
       fetchCustomers();
       setShowModal(false);
     } catch (error) {
-      // Demo mode - add to local state
+      // Save to local storage
+      const stored = localStorage.getItem('crm_customers');
+      const all = stored ? JSON.parse(stored) as Customer[] : [];
+
       if (selectedCustomer) {
-        setCustomers(prev => prev.map(c => 
+        const updated = all.map(c => 
           c.id === selectedCustomer.id 
             ? { ...c, ...formData, fullName: `${formData.firstName} ${formData.lastName}`, accountName: formData.company }
             : c
-        ));
+        );
+        localStorage.setItem('crm_customers', JSON.stringify(updated));
+        setCustomers(updated);
       } else {
         const newCustomer: Customer = {
           id: Date.now().toString(),
@@ -160,7 +204,9 @@ const Customers: React.FC = () => {
           leadStatus: formData.leadStatus,
           ownerName: 'Admin User'
         };
-        setCustomers(prev => [newCustomer, ...prev]);
+        const updated = [newCustomer, ...all];
+        localStorage.setItem('crm_customers', JSON.stringify(updated));
+        setCustomers(updated);
       }
       setShowModal(false);
     } finally {
@@ -199,6 +245,12 @@ const Customers: React.FC = () => {
               className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none"
             />
           </div>
+          <button 
+            onClick={handleSearch}
+            className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Search
+          </button>
           <button className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
             <Filter size={20} />
             <span>Filters</span>
@@ -215,6 +267,9 @@ const Customers: React.FC = () => {
         ) : customers.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-slate-500">No customers found</p>
+            <button onClick={openCreateModal} className="mt-4 text-blue-600 hover:text-blue-700">
+              Add your first customer
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -279,18 +334,24 @@ const Customers: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                        <button 
+                          onClick={() => openViewModal(customer)}
+                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="View"
+                        >
                           <Eye size={18} />
                         </button>
                         <button 
                           onClick={() => openEditModal(customer)}
                           className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit"
                         >
                           <Edit size={18} />
                         </button>
                         <button 
                           onClick={() => handleDelete(customer.id)}
                           className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -331,14 +392,20 @@ const Customers: React.FC = () => {
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
-            <div className="p-6 border-b border-slate-200">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
               <h2 className="text-xl font-bold text-slate-800">
                 {selectedCustomer ? 'Edit Customer' : 'Add New Customer'}
               </h2>
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+              {error && (
+                <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">First Name *</label>
@@ -347,7 +414,7 @@ const Customers: React.FC = () => {
                     value={formData.firstName}
                     onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
-                    required
+                    placeholder="John"
                   />
                 </div>
                 <div>
@@ -357,7 +424,7 @@ const Customers: React.FC = () => {
                     value={formData.lastName}
                     onChange={(e) => setFormData({...formData, lastName: e.target.value})}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
-                    required
+                    placeholder="Doe"
                   />
                 </div>
               </div>
@@ -368,7 +435,7 @@ const Customers: React.FC = () => {
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
-                  required
+                  placeholder="john.doe@company.com"
                 />
               </div>
               <div>
@@ -378,6 +445,7 @@ const Customers: React.FC = () => {
                   value={formData.phone}
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                  placeholder="+1 555-0100"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -388,6 +456,7 @@ const Customers: React.FC = () => {
                     value={formData.jobTitle}
                     onChange={(e) => setFormData({...formData, jobTitle: e.target.value})}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                    placeholder="Manager"
                   />
                 </div>
                 <div>
@@ -397,6 +466,7 @@ const Customers: React.FC = () => {
                     value={formData.company}
                     onChange={(e) => setFormData({...formData, company: e.target.value})}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                    placeholder="Acme Inc"
                   />
                 </div>
               </div>
@@ -424,10 +494,74 @@ const Customers: React.FC = () => {
               </button>
               <button
                 onClick={handleSave}
-                disabled={saving || !formData.firstName || !formData.lastName || !formData.email}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={saving}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
-                {saving ? 'Saving...' : (selectedCustomer ? 'Update' : 'Create')}
+                {saving && <Loader2 className="animate-spin" size={16} />}
+                {saving ? 'Saving...' : (selectedCustomer ? 'Update Customer' : 'Create Customer')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Modal */}
+      {showViewModal && selectedCustomer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-800">Customer Details</h2>
+              <button onClick={() => setShowViewModal(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                  {selectedCustomer.firstName?.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-slate-800">{selectedCustomer.fullName}</h3>
+                  <p className="text-slate-500">{selectedCustomer.jobTitle || 'No title'}</p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                  <Mail className="text-slate-400" size={20} />
+                  <div>
+                    <p className="text-xs text-slate-500">Email</p>
+                    <p className="text-slate-800">{selectedCustomer.email || '-'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                  <Phone className="text-slate-400" size={20} />
+                  <div>
+                    <p className="text-xs text-slate-500">Phone</p>
+                    <p className="text-slate-800">{selectedCustomer.phone || '-'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                  <Building2 className="text-slate-400" size={20} />
+                  <div>
+                    <p className="text-xs text-slate-500">Company</p>
+                    <p className="text-slate-800">{selectedCustomer.accountName || '-'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                  <span className="text-slate-500">Status</span>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[selectedCustomer.leadStatus] || 'bg-slate-100 text-slate-700'}`}>
+                    {selectedCustomer.leadStatus}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={() => { setShowViewModal(false); openEditModal(selectedCustomer); }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <Edit size={16} />
+                Edit Customer
               </button>
             </div>
           </div>
@@ -438,4 +572,3 @@ const Customers: React.FC = () => {
 };
 
 export default Customers;
-

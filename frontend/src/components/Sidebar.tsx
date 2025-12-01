@@ -7,12 +7,12 @@ import {
   MessageSquare, 
   CheckSquare,
   Phone,
-  Bug,
   Settings,
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  Link as LinkIcon
+  Link as LinkIcon,
+  AlertCircle
 } from 'lucide-react';
 
 const navItems = [
@@ -21,8 +21,8 @@ const navItems = [
   { path: '/accounts', icon: Building2, label: 'Accounts' },
   { path: '/interactions', icon: MessageSquare, label: 'Interactions' },
   { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
+  { path: '/issues', icon: AlertCircle, label: 'Issues' },
   { path: '/calls', icon: Phone, label: 'Calls' },
-  { path: '/issues', icon: Bug, label: 'Issue Tracking' },
   { path: '/ai-assistant', icon: Sparkles, label: 'AI Assistant' },
   { path: '/integrations', icon: LinkIcon, label: 'Integrations' },
   { path: '/settings', icon: Settings, label: 'Settings' },

@@ -8,10 +8,10 @@ import Accounts from './pages/Accounts';
 import Interactions from './pages/Interactions';
 import Tasks from './pages/Tasks';
 import Calls from './pages/Calls';
-import Issues from './pages/Issues';
 import Settings from './pages/Settings';
 import AIAssistant from './pages/AIAssistant';
 import Integrations from './pages/Integrations';
+import Issues from './pages/Issues';
 import AuthCallback from './pages/AuthCallback';
 
 export default function App() {
@@ -30,8 +30,8 @@ export default function App() {
           <Route path="/accounts" element={<Accounts />} />
           <Route path="/interactions" element={<Interactions />} />
           <Route path="/tasks" element={<Tasks />} />
-          <Route path="/calls" element={<Calls />} />
           <Route path="/issues" element={<Issues />} />
+          <Route path="/calls" element={<Calls />} />
           <Route path="/ai-assistant" element={<AIAssistant />} />
           <Route path="/integrations" element={<Integrations />} />
           <Route path="/settings" element={<Settings />} />

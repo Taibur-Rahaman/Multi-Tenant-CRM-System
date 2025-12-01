@@ -72,6 +72,11 @@ export const authApi = {
   
   logout: (refreshToken: string) => 
     api.post('/auth/logout', { refreshToken }),
+
+  oauthCallback: (provider: string, code: string, state?: string | null) =>
+    api.post<ApiResponse<AuthResponse>>(`/auth/oauth2/callback/${provider}`, null, { 
+      params: { code, state } 
+    }),
 };
 
 // Users API
@@ -159,6 +164,23 @@ export const aiApi = {
     api.post('/ai/summarize', { entityType, entityId }),
   getInsights: (customerId: string) => 
     api.get(`/ai/insights/${customerId}`),
+};
+
+// Issues API (Jira/Linear integration)
+export const issuesApi = {
+  getAll: (params?: { page?: number; size?: number }) => 
+    api.get('/issues', { params }),
+  getById: (id: string) => api.get(`/issues/${id}`),
+  getByCustomer: (customerId: string, params?: { page?: number; size?: number }) => 
+    api.get(`/issues/customer/${customerId}`, { params }),
+  getByStatus: (status: string, params?: { page?: number; size?: number }) => 
+    api.get(`/issues/status/${status}`, { params }),
+  create: (data: unknown) => api.post('/issues', data),
+  update: (id: string, data: unknown) => api.put(`/issues/${id}`, data),
+  updateStatus: (id: string, status: string) => api.patch(`/issues/${id}/status`, { status }),
+  delete: (id: string) => api.delete(`/issues/${id}`),
+  syncFromJira: () => api.post('/issues/sync/jira'),
+  syncFromLinear: () => api.post('/issues/sync/linear'),
 };
 
 export default api;
