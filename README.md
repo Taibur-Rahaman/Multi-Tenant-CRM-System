@@ -1,117 +1,101 @@
 # Multi-Tenant CRM System
 
-A comprehensive, AI-powered Customer Relationship Management system with multi-tenant architecture, voice capabilities, and seamless integrations.
+**Course:** CSE 327 - Software Engineering  
+**University:** North South University  
+**Team:** NeoBit  
+**Supervisor:** Dr. Nabeel Mohammed
 
-## 🚀 Features
+---
 
-### Phase 1 – Core Platform
-- [x] **Multi-Tenant Architecture**: Vendor isolation with shared database
-- [x] **Authentication**: OAuth2 + JWT with role-based access (Admin, Agent)
-- [x] **CRM Core Modules**: Customers, Accounts, Interactions, Tasks
-- [x] **Search & Reporting**: Full-text search with filters
-- [x] **Integrations**: Gmail, Calendar, Telegram, Jira/Linear, Telephony
-- [x] **React Web App**: Modern, responsive dashboard
-- [x] **Docker Deployment**: Complete containerization
+## 👥 Team Members
 
-### Phase 2 – AI & Automation
-- [x] **AI Assistant**: Conversational Q&A about CRM data
-- [x] **Summarization**: Email, meeting, and interaction summaries
-- [x] **Voice System**: Speech-to-text and text-to-speech
-- [x] **Automation Engine**: Auto-lead creation, complaint detection
-- [x] **Lead Scoring**: AI-powered lead prioritization
-- [x] **Meeting Preparation**: AI-generated briefing notes
-- [x] **MCP Server**: Model Context Protocol integration for AI assistants
+| Name | ID | Role |
+|------|-----|------|
+| Md Taibur Rahaman | 1931424642 | Team Lead |
+| Md Nazim Uddin | 1931478042 | Backend Lead |
+| Mahin Sarker Bushra | 2031636642 | Frontend |
+| Samita Zahin Chowdhury | 191190042 | Android |
+
+---
+
+## 📋 Project Overview
+
+A multi-tenant Customer Relationship Management (CRM) system that allows multiple vendors to manage their customers, interactions, and tasks in isolated environments.
+
+### Key Features
+
+- ✅ **Multi-Tenant Architecture** - Vendor data isolation
+- ✅ **Customer Management** - CRUD operations for customers
+- ✅ **Interaction Tracking** - Log calls, emails, meetings
+- ✅ **Task Management** - Assign and track tasks
+- ✅ **OAuth Authentication** - Google & GitHub login
+- ✅ **Responsive Web App** - React + TypeScript
+- ✅ **Mobile App** - Android (Kotlin)
+
+---
 
 ## 📁 Project Structure
 
 ```
 Multi-Tenant-CRM-System/
-├── backend/                 # Spring Boot Backend
+│
+├── backend/                 # Spring Boot REST API
+│   ├── src/main/java/       # Java source code
+│   ├── src/main/resources/  # Configuration files
+│   ├── pom.xml              # Maven dependencies
+│   └── Dockerfile
+│
+├── frontend/                # React Web Application
 │   ├── src/
-│   │   └── main/
-│   │       ├── java/com/neobit/crm/
-│   │       │   ├── controller/      # REST Controllers
-│   │       │   ├── service/         # Business Logic
-│   │       │   ├── repository/      # Data Access
-│   │       │   ├── entity/          # JPA Entities
-│   │       │   ├── dto/             # Data Transfer Objects
-│   │       │   ├── security/        # JWT & Auth
-│   │       │   └── config/          # Configuration
-│   │       └── resources/
-│   │           ├── db/migration/    # Flyway Migrations
-│   │           └── application.yml
-│   ├── Dockerfile
-│   └── pom.xml
+│   │   ├── components/      # Reusable UI components
+│   │   ├── pages/           # Page components
+│   │   ├── services/        # API calls
+│   │   └── store/           # State management
+│   ├── package.json
+│   └── Dockerfile
 │
-├── frontend/                # React Frontend
-│   ├── src/
-│   │   ├── components/      # Reusable Components
-│   │   ├── pages/           # Page Components
-│   │   ├── services/        # API Services
-│   │   ├── store/           # Zustand State
-│   │   └── types/           # TypeScript Types
-│   ├── Dockerfile
-│   └── package.json
-│
-├── ai-service/              # Python FastAPI AI Service
-│   ├── app/
-│   │   ├── routers/         # API Routes
-│   │   ├── services/        # Business Logic
-│   │   └── middleware/      # Auth & Tenant
-│   ├── Dockerfile
-│   └── requirements.txt
-│
-├── mcp-server/              # MCP Server (Model Context Protocol)
-│   ├── server.py            # Main MCP Server
-│   ├── crm_client.py        # CRM API Client
-│   ├── config.py            # Configuration
-│   ├── Dockerfile
-│   └── requirements.txt
-│
-├── android/                 # Android App (Kotlin)
+├── android/                 # Android Mobile App
+│   └── crm-app/             # Kotlin + Jetpack Compose
 │
 ├── docs/                    # Documentation
-│   ├── ARCHITECTURE.md
-│   ├── API.md
-│   └── postman/
+│   ├── API.md               # API documentation
+│   └── ARCHITECTURE.md      # System architecture
 │
-├── docker-compose.yml       # Full Stack Deployment
-├── .github/workflows/       # CI/CD Pipeline
-└── .env.example             # Environment Variables
+├── docker-compose.yml       # Container orchestration
+└── README.md
 ```
 
-## 🛠️ Tech Stack
+---
+
+## 🛠️ Technology Stack
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | React 18, TypeScript, Tailwind CSS, Zustand |
-| **Backend** | Spring Boot 3.2, Spring Security, JPA |
-| **AI Service** | FastAPI, OpenAI GPT-4, Whisper |
-| **Database** | PostgreSQL 16, ElasticSearch 8.x, Redis |
-| **Deployment** | Docker, Docker Compose, GitHub Actions |
+| **Backend** | Java 21, Spring Boot 3.2, Spring Security |
+| **Frontend** | React 18, TypeScript, Tailwind CSS |
+| **Mobile** | Kotlin, Jetpack Compose, Material 3 |
+| **Database** | PostgreSQL 16 |
+| **Cache** | Redis |
+| **Auth** | JWT, OAuth2 (Google, GitHub) |
+| **Deployment** | Docker, Docker Compose |
+
+---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Docker & Docker Compose
-- Node.js 20+ (for local development)
-- Java 21+ (for local development)
-- Python 3.11+ (for AI service development)
 
-### 1. Clone & Configure
+- Docker & Docker Compose
+- Node.js 20+ (for frontend development)
+- Java 21+ (for backend development)
+
+### Run with Docker
 
 ```bash
-git clone https://github.com/your-repo/Multi-Tenant-CRM-System.git
+# Clone the repository
+git clone https://github.com/Taibur-Rahaman/Multi-Tenant-CRM-System.git
 cd Multi-Tenant-CRM-System
 
-# Copy and configure environment variables
-cp .env.example .env
-# Edit .env with your API keys
-```
-
-### 2. Start with Docker
-
-```bash
 # Start all services
 docker-compose up -d
 
@@ -119,22 +103,22 @@ docker-compose up -d
 docker-compose logs -f
 ```
 
-### 3. Access the Application
+### Access the Application
 
 | Service | URL |
 |---------|-----|
-| Frontend | http://localhost:80 |
+| Frontend | http://localhost |
 | Backend API | http://localhost:8080/api |
-| AI Service | http://localhost:8001 |
 | API Docs | http://localhost:8080/api/swagger-ui.html |
 
-### 4. Default Credentials
+### Default Login
 
 ```
 Email: admin@demo.com
 Password: admin123
-Tenant: demo
 ```
+
+---
 
 ## 🔧 Development Setup
 
@@ -142,7 +126,7 @@ Tenant: demo
 
 ```bash
 cd backend
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+./mvnw spring-boot:run
 ```
 
 ### Frontend
@@ -153,129 +137,101 @@ npm install
 npm run dev
 ```
 
-### AI Service
+Access at: http://localhost:5173
 
-```bash
-cd ai-service
-python -m venv venv
-source venv/bin/activate  # or `venv\Scripts\activate` on Windows
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8001
-```
+---
 
-## 📚 API Documentation
+## 📚 API Endpoints
 
-- **Swagger UI**: http://localhost:8080/api/swagger-ui.html
-- **API Docs**: See [docs/API.md](docs/API.md)
-- **Postman Collection**: [docs/postman/](docs/postman/)
+### Authentication
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | User login |
+| POST | `/api/auth/register` | User registration |
+| POST | `/api/auth/refresh` | Refresh token |
 
-## 🤖 MCP Server Integration
+### Customers
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/customers` | List all customers |
+| POST | `/api/customers` | Create customer |
+| GET | `/api/customers/{id}` | Get customer details |
+| PUT | `/api/customers/{id}` | Update customer |
+| DELETE | `/api/customers/{id}` | Delete customer |
 
-The project includes an MCP (Model Context Protocol) server that allows AI assistants to interact with your CRM data.
+### Tasks
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/tasks` | List all tasks |
+| POST | `/api/tasks` | Create task |
+| PUT | `/api/tasks/{id}` | Update task |
+| POST | `/api/tasks/{id}/complete` | Mark complete |
 
-### Available Tools
+### Interactions
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/interactions` | List interactions |
+| POST | `/api/interactions` | Log interaction |
 
-| Tool | Description |
-|------|-------------|
-| `list_customers` | List all customers with pagination |
-| `search_customers` | Search customers by name/email/company |
-| `create_customer` | Create a new customer |
-| `list_tasks` | List tasks with filters |
-| `create_task` | Create a new task |
-| `log_interaction` | Log customer interactions |
-| `get_dashboard_stats` | Get CRM metrics |
-
-### Setup with Claude Desktop
-
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "crm": {
-      "command": "python",
-      "args": ["/path/to/mcp-server/server.py"],
-      "env": {
-        "MCP_CRM_API_URL": "http://localhost:8080/api",
-        "MCP_API_TOKEN": "your-jwt-token"
-      }
-    }
-  }
-}
-```
-
-See [mcp-server/README.md](mcp-server/README.md) for detailed MCP setup instructions.
+---
 
 ## 🏗️ Architecture
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed system architecture.
-
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Frontend  │────▶│   Backend   │────▶│  Database   │
-│   (React)   │     │ (Spring)    │     │ (PostgreSQL)│
-└─────────────┘     └──────┬──────┘     └─────────────┘
-                          │
-                          ▼
-                    ┌─────────────┐
-                    │ AI Service  │
-                    │  (FastAPI)  │
-                    └─────────────┘
+│   Browser   │────▶│   Frontend  │────▶│   Backend   │
+│             │     │   (React)   │     │ (Spring)    │
+└─────────────┘     └─────────────┘     └──────┬──────┘
+                                               │
+┌─────────────┐                          ┌─────▼──────┐
+│   Android   │─────────────────────────▶│ PostgreSQL │
+│    App      │                          │  Database  │
+└─────────────┘                          └────────────┘
 ```
+
+---
 
 ## 🧪 Testing
 
 ```bash
 # Backend tests
-cd backend && ./mvnw test
+cd backend
+./mvnw test
 
 # Frontend tests
-cd frontend && npm test
-
-# AI Service tests
-cd ai-service && pytest
-
-# E2E tests
-cd frontend && npx cypress run
+cd frontend
+npm test
 ```
-
-## 📦 Deployment
-
-### Docker Compose (Production)
-
-```bash
-docker-compose -f docker-compose.yml up -d
-```
-
-### CI/CD
-
-GitHub Actions pipeline automatically:
-1. Runs tests for all services
-2. Builds Docker images
-3. Pushes to container registry
-4. (Optional) Deploys to production
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👥 Team
-
-| Member | Role |
-|--------|------|
-| Taibur | Team Lead |
-| Nazim | Backend Lead |
-| Bushra | Frontend |
-| Samita | Android |
 
 ---
 
-Built with ❤️ for modern CRM needs
+## 📱 Screenshots
+
+### Web Dashboard
+- Login page with OAuth options
+- Customer management dashboard
+- Task tracking interface
+- Interaction logging
+
+### Android App
+- Material 3 design
+- Customer list and details
+- Task management
+- Settings
+
+---
+
+## 📄 License
+
+MIT License - See [LICENSE](LICENSE) file
+
+---
+
+## 🙏 Acknowledgments
+
+- Dr. Nabeel Mohammed (Supervisor)
+- North South University, Department of CSE
+
+---
+
+**Built with ❤️ by Team NeoBit**
