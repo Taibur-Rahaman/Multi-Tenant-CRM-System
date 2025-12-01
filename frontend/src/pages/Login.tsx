@@ -4,9 +4,9 @@ import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { authApi } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 
-// OAuth Configuration
-const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID || 'Ov23lixkTxw30PSjeKcO';
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '314318811619-kovcn4f00akcg3pci7fsorilqs59a44p.apps.googleusercontent.com';
+// OAuth Configuration - Set these in your .env file
+const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID || '';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 const REDIRECT_URI = import.meta.env.VITE_OAUTH_REDIRECT_URI || 'http://localhost:5173/auth/callback';
 
 const Login: React.FC = () => {
