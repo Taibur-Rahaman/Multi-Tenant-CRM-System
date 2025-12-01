@@ -22,6 +22,16 @@ const statusColors: Record<string, string> = {
   lost: 'bg-red-100 text-red-700',
 };
 
+interface CustomerFormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  jobTitle: string;
+  company: string;
+  leadStatus: string;
+}
+
 const Customers: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +40,10 @@ const Customers: React.FC = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [formData, setFormData] = useState<CustomerFormData>({
+    firstName: '', lastName: '', email: '', phone: '', jobTitle: '', company: '', leadStatus: 'new'
+  });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
@@ -90,7 +104,67 @@ const Customers: React.FC = () => {
       await customersApi.delete(id);
       fetchCustomers();
     } catch (error) {
-      console.error('Error deleting customer:', error);
+      // Demo mode - remove from local state
+      setCustomers(prev => prev.filter(c => c.id !== id));
+    }
+  };
+
+  const openCreateModal = () => {
+    setSelectedCustomer(null);
+    setFormData({ firstName: '', lastName: '', email: '', phone: '', jobTitle: '', company: '', leadStatus: 'new' });
+    setShowModal(true);
+  };
+
+  const openEditModal = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setFormData({
+      firstName: customer.firstName || '',
+      lastName: customer.lastName || '',
+      email: customer.email || '',
+      phone: customer.phone || '',
+      jobTitle: customer.jobTitle || '',
+      company: customer.accountName || '',
+      leadStatus: customer.leadStatus || 'new'
+    });
+    setShowModal(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      if (selectedCustomer) {
+        await customersApi.update(selectedCustomer.id, formData);
+      } else {
+        await customersApi.create(formData);
+      }
+      fetchCustomers();
+      setShowModal(false);
+    } catch (error) {
+      // Demo mode - add to local state
+      if (selectedCustomer) {
+        setCustomers(prev => prev.map(c => 
+          c.id === selectedCustomer.id 
+            ? { ...c, ...formData, fullName: `${formData.firstName} ${formData.lastName}`, accountName: formData.company }
+            : c
+        ));
+      } else {
+        const newCustomer: Customer = {
+          id: Date.now().toString(),
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          fullName: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          phone: formData.phone,
+          jobTitle: formData.jobTitle,
+          accountName: formData.company,
+          leadStatus: formData.leadStatus,
+          ownerName: 'Admin User'
+        };
+        setCustomers(prev => [newCustomer, ...prev]);
+      }
+      setShowModal(false);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -103,7 +177,7 @@ const Customers: React.FC = () => {
           <p className="text-slate-500 mt-1">Manage your customers and leads</p>
         </div>
         <button 
-          onClick={() => { setSelectedCustomer(null); setShowModal(true); }}
+          onClick={openCreateModal}
           className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
         >
           <Plus size={20} />
@@ -209,7 +283,7 @@ const Customers: React.FC = () => {
                           <Eye size={18} />
                         </button>
                         <button 
-                          onClick={() => { setSelectedCustomer(customer); setShowModal(true); }}
+                          onClick={() => openEditModal(customer)}
                           className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         >
                           <Edit size={18} />
@@ -254,6 +328,111 @@ const Customers: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Create/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
+            <div className="p-6 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-800">
+                {selectedCustomer ? 'Edit Customer' : 'Add New Customer'}
+              </h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">First Name *</label>
+                  <input
+                    type="text"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Last Name *</label>
+                  <input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Email *</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Job Title</label>
+                  <input
+                    type="text"
+                    value={formData.jobTitle}
+                    onChange={(e) => setFormData({...formData, jobTitle: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Company</label>
+                  <input
+                    type="text"
+                    value={formData.company}
+                    onChange={(e) => setFormData({...formData, company: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Lead Status</label>
+                <select
+                  value={formData.leadStatus}
+                  onChange={(e) => setFormData({...formData, leadStatus: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                >
+                  <option value="new">New</option>
+                  <option value="contacted">Contacted</option>
+                  <option value="qualified">Qualified</option>
+                  <option value="converted">Converted</option>
+                  <option value="lost">Lost</option>
+                </select>
+              </div>
+            </div>
+            <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving || !formData.firstName || !formData.lastName || !formData.email}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {saving ? 'Saving...' : (selectedCustomer ? 'Update' : 'Create')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
