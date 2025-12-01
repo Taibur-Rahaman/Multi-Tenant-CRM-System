@@ -20,17 +20,10 @@
 
 ## 📋 Project Overview
 
-A multi-tenant Customer Relationship Management (CRM) system that allows multiple vendors to manage their customers, interactions, and tasks in isolated environments.
+A multi-tenant Customer Relationship Management (CRM) system that allows multiple vendors to manage their customers, interactions, and tasks in isolated environments. The system includes AI-powered features for intelligent customer insights and voice-based interactions.
 
-### Key Features
-
-- ✅ **Multi-Tenant Architecture** - Vendor data isolation
-- ✅ **Customer Management** - CRUD operations for customers
-- ✅ **Interaction Tracking** - Log calls, emails, meetings
-- ✅ **Task Management** - Assign and track tasks
-- ✅ **OAuth Authentication** - Google & GitHub login
-- ✅ **Responsive Web App** - React + TypeScript
-- ✅ **Mobile App** - Android (Kotlin)
+### Product Vision
+> "To build a secure, multi-tenant CRM that intelligently manages interactions, automates workflows, and helps vendors build stronger customer relationships through AI-powered insights."
 
 ---
 
@@ -39,30 +32,36 @@ A multi-tenant Customer Relationship Management (CRM) system that allows multipl
 ```
 Multi-Tenant-CRM-System/
 │
-├── backend/                 # Spring Boot REST API
-│   ├── src/main/java/       # Java source code
-│   ├── src/main/resources/  # Configuration files
-│   ├── pom.xml              # Maven dependencies
-│   └── Dockerfile
+├── backend/                 # Spring Boot REST API (Java)
+│   ├── src/main/java/       
+│   │   └── com/neobit/crm/
+│   │       ├── controller/  # REST Controllers
+│   │       ├── service/     # Business Logic
+│   │       ├── repository/  # Data Access
+│   │       ├── entity/      # JPA Entities
+│   │       ├── dto/         # Data Transfer Objects
+│   │       ├── security/    # JWT & Auth
+│   │       └── integration/ # Gmail, Jira, Telegram, Twilio
+│   └── src/test/java/       # Unit Tests
 │
-├── frontend/                # React Web Application
-│   ├── src/
-│   │   ├── components/      # Reusable UI components
-│   │   ├── pages/           # Page components
-│   │   ├── services/        # API calls
-│   │   └── store/           # State management
-│   ├── package.json
-│   └── Dockerfile
+├── frontend/                # React Web Application (TypeScript)
+│   └── src/
+│       ├── components/      # Reusable UI Components
+│       ├── pages/           # Page Components
+│       ├── services/        # API Calls
+│       └── store/           # State Management
 │
-├── android/                 # Android Mobile App
-│   └── crm-app/             # Kotlin + Jetpack Compose
+├── ai-service/              # AI Service (Python FastAPI)
+│   └── app/
+│       ├── routers/         # Chat, Voice, Summary APIs
+│       └── services/        # AI & Voice Processing
+│
+├── android/                 # Android Mobile App (Kotlin)
+│   └── crm-app/             # Jetpack Compose UI
 │
 ├── docs/                    # Documentation
-│   ├── API.md               # API documentation
-│   └── ARCHITECTURE.md      # System architecture
 │
-├── docker-compose.yml       # Container orchestration
-└── README.md
+└── docker-compose.yml       # Container Orchestration
 ```
 
 ---
@@ -71,23 +70,106 @@ Multi-Tenant-CRM-System/
 
 | Layer | Technology |
 |-------|------------|
-| **Backend** | Java 21, Spring Boot 3.2, Spring Security |
-| **Frontend** | React 18, TypeScript, Tailwind CSS |
+| **Backend** | Java 21, Spring Boot 3.2, Spring Security, JPA |
+| **Frontend** | React 18, TypeScript, Tailwind CSS, Zustand |
+| **AI Service** | Python 3.11, FastAPI, OpenAI, SpeechRecognition |
 | **Mobile** | Kotlin, Jetpack Compose, Material 3 |
-| **Database** | PostgreSQL 16 |
+| **Database** | PostgreSQL 16 (with Full-Text Search) |
 | **Cache** | Redis |
 | **Auth** | JWT, OAuth2 (Google, GitHub) |
 | **Deployment** | Docker, Docker Compose |
 
 ---
 
+## ✅ Phase 1: Core Platform (Completed)
+
+### Features Implemented
+
+| Feature | Use Case | Status |
+|---------|----------|--------|
+| Multi-Tenant Architecture | UC-1 | ✅ |
+| User Authentication (OAuth2/JWT) | UC-2 | ✅ |
+| Customer Management (CRUD) | UC-3 | ✅ |
+| Interaction Logging | UC-4 | ✅ |
+| Integration Sync (Gmail, Calendar, Telegram, Jira) | UC-5 | ✅ |
+| Direct Call (Twilio) | UC-6 | ✅ |
+| Full-Text Search | - | ✅ |
+| Web App (React) | - | ✅ |
+| Android MVP | - | ✅ |
+| Docker Deployment | - | ✅ |
+| Unit Tests | - | ✅ |
+
+### API Endpoints
+
+#### Authentication
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | User login |
+| POST | `/api/auth/register` | User registration |
+| POST | `/api/auth/refresh` | Refresh token |
+| GET | `/api/auth/oauth/providers` | Get OAuth providers |
+
+#### Customers
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/customers` | List all customers |
+| POST | `/api/customers` | Create customer |
+| GET | `/api/customers/{id}` | Get customer details |
+| PUT | `/api/customers/{id}` | Update customer |
+| DELETE | `/api/customers/{id}` | Delete customer |
+| GET | `/api/customers/search?q=` | Search customers |
+
+#### Tasks
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/tasks` | List all tasks |
+| POST | `/api/tasks` | Create task |
+| PUT | `/api/tasks/{id}` | Update task |
+| POST | `/api/tasks/{id}/complete` | Mark complete |
+
+#### Interactions
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/interactions` | List interactions |
+| POST | `/api/interactions` | Log interaction |
+| GET | `/api/interactions/customer/{id}` | Customer interactions |
+
+---
+
+## 🤖 Phase 2: AI Enhancement (Completed)
+
+### Features Implemented
+
+| Feature | Use Case | Status |
+|---------|----------|--------|
+| Conversational AI Assistant | UC-7 | ✅ |
+| Voice Input/Output (STT/TTS) | UC-8 | ✅ |
+| Auto Lead Scoring | - | ✅ |
+| AI Summarization | - | ✅ |
+| Meeting Preparation Brief | - | ✅ |
+
+### AI Service Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/chat/` | AI chat assistant |
+| POST | `/chat/insights` | Customer insights |
+| POST | `/chat/meeting-prep` | Meeting preparation |
+| POST | `/voice/speech-to-text` | Convert speech to text |
+| POST | `/voice/text-to-speech` | Convert text to speech |
+| POST | `/voice/voice-command` | Process voice command |
+| POST | `/summary/generate` | Generate AI summary |
+| POST | `/summary/lead-score` | Calculate lead score |
+
+---
+
 ## 🚀 Quick Start
 
 ### Prerequisites
-
 - Docker & Docker Compose
-- Node.js 20+ (for frontend development)
-- Java 21+ (for backend development)
+- Node.js 20+ (for frontend dev)
+- Java 21+ (for backend dev)
+- Python 3.11+ (for AI service dev)
 
 ### Run with Docker
 
@@ -95,6 +177,9 @@ Multi-Tenant-CRM-System/
 # Clone the repository
 git clone https://github.com/Taibur-Rahaman/Multi-Tenant-CRM-System.git
 cd Multi-Tenant-CRM-System
+
+# Copy environment file
+cp env.example .env
 
 # Start all services
 docker-compose up -d
@@ -109,10 +194,10 @@ docker-compose logs -f
 |---------|-----|
 | Frontend | http://localhost |
 | Backend API | http://localhost:8080/api |
+| AI Service | http://localhost:8001 |
 | API Docs | http://localhost:8080/api/swagger-ui.html |
 
 ### Default Login
-
 ```
 Email: admin@demo.com
 Password: admin123
@@ -123,55 +208,24 @@ Password: admin123
 ## 🔧 Development Setup
 
 ### Backend
-
 ```bash
 cd backend
 ./mvnw spring-boot:run
 ```
 
 ### Frontend
-
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Access at: http://localhost:5173
-
----
-
-## 📚 API Endpoints
-
-### Authentication
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/login` | User login |
-| POST | `/api/auth/register` | User registration |
-| POST | `/api/auth/refresh` | Refresh token |
-
-### Customers
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/customers` | List all customers |
-| POST | `/api/customers` | Create customer |
-| GET | `/api/customers/{id}` | Get customer details |
-| PUT | `/api/customers/{id}` | Update customer |
-| DELETE | `/api/customers/{id}` | Delete customer |
-
-### Tasks
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/tasks` | List all tasks |
-| POST | `/api/tasks` | Create task |
-| PUT | `/api/tasks/{id}` | Update task |
-| POST | `/api/tasks/{id}/complete` | Mark complete |
-
-### Interactions
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/interactions` | List interactions |
-| POST | `/api/interactions` | Log interaction |
+### AI Service
+```bash
+cd ai-service
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8001
+```
 
 ---
 
@@ -183,10 +237,10 @@ Access at: http://localhost:5173
 │             │     │   (React)   │     │ (Spring)    │
 └─────────────┘     └─────────────┘     └──────┬──────┘
                                                │
-┌─────────────┐                          ┌─────▼──────┐
-│   Android   │─────────────────────────▶│ PostgreSQL │
-│    App      │                          │  Database  │
-└─────────────┘                          └────────────┘
+┌─────────────┐     ┌─────────────┐     ┌──────▼──────┐
+│   Android   │────▶│ AI Service  │────▶│ PostgreSQL  │
+│    App      │     │  (FastAPI)  │     │  Database   │
+└─────────────┘     └─────────────┘     └─────────────┘
 ```
 
 ---
@@ -201,23 +255,22 @@ cd backend
 # Frontend tests
 cd frontend
 npm test
+
+# AI Service tests
+cd ai-service
+pytest
 ```
 
 ---
 
-## 📱 Screenshots
+## 📊 Success Metrics
 
-### Web Dashboard
-- Login page with OAuth options
-- Customer management dashboard
-- Task tracking interface
-- Interaction logging
-
-### Android App
-- Material 3 design
-- Customer list and details
-- Task management
-- Settings
+| Metric | Goal | Status |
+|--------|------|--------|
+| Tenant Data Isolation | 100% | ✅ |
+| API Response Time | < 2s | ✅ |
+| Test Coverage | ≥ 70% | ✅ |
+| Integration Sync Rate | ≥ 95% | ✅ |
 
 ---
 
@@ -234,4 +287,4 @@ MIT License - See [LICENSE](LICENSE) file
 
 ---
 
-**Built with ❤️ by Team NeoBit**
+**Built with ❤️ by Team NeoBit - CSE 327**
