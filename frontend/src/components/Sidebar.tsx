@@ -1,86 +1,182 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
   Building2, 
-  MessageSquare, 
+  Kanban,
+  Target,
+  Package,
+  FileText,
+  CalendarDays,
   CheckSquare,
-  Phone,
+  BarChart3,
   Settings,
   ChevronLeft,
   ChevronRight,
   Sparkles,
   Link as LinkIcon,
-  AlertCircle
+  AlertCircle,
+  Phone,
+  HelpCircle,
+  Bell
 } from 'lucide-react';
 
-const navItems = [
-  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/customers', icon: Users, label: 'Customers' },
-  { path: '/accounts', icon: Building2, label: 'Accounts' },
-  { path: '/interactions', icon: MessageSquare, label: 'Interactions' },
-  { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
-  { path: '/issues', icon: AlertCircle, label: 'Issues' },
-  { path: '/calls', icon: Phone, label: 'Calls' },
-  { path: '/ai-assistant', icon: Sparkles, label: 'AI Assistant' },
-  { path: '/integrations', icon: LinkIcon, label: 'Integrations' },
-  { path: '/settings', icon: Settings, label: 'Settings' },
+interface NavItem {
+  path: string;
+  icon: React.ElementType;
+  label: string;
+  badge?: number;
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+const navSections: NavSection[] = [
+  {
+    title: 'Overview',
+    items: [
+      { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/pipeline', icon: Kanban, label: 'Pipeline' },
+    ]
+  },
+  {
+    title: 'Sales',
+    items: [
+      { path: '/deals', icon: Target, label: 'Deals' },
+      { path: '/contacts', icon: Users, label: 'Contacts' },
+      { path: '/accounts', icon: Building2, label: 'Accounts' },
+      { path: '/products', icon: Package, label: 'Products' },
+      { path: '/quotes', icon: FileText, label: 'Quotes' },
+    ]
+  },
+  {
+    title: 'Activities',
+    items: [
+      { path: '/activities', icon: CalendarDays, label: 'Activities' },
+      { path: '/tasks', icon: CheckSquare, label: 'Tasks', badge: 5 },
+      { path: '/calls', icon: Phone, label: 'Calls' },
+    ]
+  },
+  {
+    title: 'Support',
+    items: [
+      { path: '/issues', icon: AlertCircle, label: 'Issues' },
+    ]
+  },
+  {
+    title: 'Insights',
+    items: [
+      { path: '/reports', icon: BarChart3, label: 'Reports' },
+      { path: '/ai-assistant', icon: Sparkles, label: 'AI Assistant' },
+    ]
+  },
+  {
+    title: 'Settings',
+    items: [
+      { path: '/integrations', icon: LinkIcon, label: 'Integrations' },
+      { path: '/settings', icon: Settings, label: 'Settings' },
+    ]
+  }
 ];
 
 const Sidebar: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const location = useLocation();
 
   return (
     <aside 
-      className={`bg-slate-900 text-white transition-all duration-300 flex flex-col ${
-        collapsed ? 'w-16' : 'w-64'
+      className={`sidebar transition-all duration-300 ${
+        collapsed ? 'w-[72px]' : 'w-64'
       }`}
     >
       {/* Logo */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-slate-700">
+      <div className="sidebar-header justify-between">
         {!collapsed && (
-          <span className="font-bold text-xl bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-            CRM Pro
-          </span>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center">
+              <Target size={18} className="text-white" />
+            </div>
+            <span className="sidebar-logo">Nexus CRM</span>
+          </div>
+        )}
+        {collapsed && (
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center mx-auto">
+            <Target size={18} className="text-white" />
+          </div>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+          className={`p-1.5 rounded-lg hover:bg-slate-800 transition-colors text-slate-400 hover:text-white ${collapsed ? 'hidden' : ''}`}
         >
-          {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+          <ChevronLeft size={18} />
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 space-y-1 px-2">
-        {navItems.map(({ path, icon: Icon, label }) => (
-          <NavLink
-            key={path}
-            to={path}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                isActive
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-              }`
-            }
-          >
-            <Icon size={20} />
-            {!collapsed && <span className="font-medium">{label}</span>}
-          </NavLink>
+      <nav className="sidebar-nav overflow-y-auto scrollbar-hide">
+        {navSections.map((section, idx) => (
+          <div key={section.title} className={idx > 0 ? 'sidebar-section' : ''}>
+            {!collapsed && (
+              <div className="sidebar-section-title mb-2">{section.title}</div>
+            )}
+            <div className="space-y-1">
+              {section.items.map(({ path, icon: Icon, label, badge }) => (
+                <NavLink
+                  key={path}
+                  to={path}
+                  className={({ isActive }) =>
+                    `sidebar-link ${isActive ? 'sidebar-link-active' : ''} ${collapsed ? 'justify-center px-2' : ''}`
+                  }
+                  title={collapsed ? label : undefined}
+                >
+                  <Icon size={20} className="flex-shrink-0" />
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1">{label}</span>
+                      {badge && (
+                        <span className="bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                          {badge}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 
-      {/* Footer */}
+      {/* Expand button when collapsed */}
+      {collapsed && (
+        <div className="p-3 border-t border-slate-800">
+          <button
+            onClick={() => setCollapsed(false)}
+            className="w-full p-2 rounded-lg hover:bg-slate-800 transition-colors text-slate-400 hover:text-white flex items-center justify-center"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* Footer - Upgrade Card */}
       {!collapsed && (
-        <div className="p-4 border-t border-slate-700">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-4">
-            <h4 className="font-semibold text-sm">Upgrade to Pro</h4>
-            <p className="text-xs text-blue-100 mt-1">Get AI features & more</p>
-            <button className="mt-3 w-full bg-white text-blue-600 font-medium py-1.5 rounded-md text-sm hover:bg-blue-50 transition-colors">
-              Upgrade Now
-            </button>
+        <div className="p-4 border-t border-slate-800">
+          <div className="bg-gradient-to-br from-blue-600 via-violet-600 to-purple-600 rounded-xl p-4 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={16} className="text-yellow-300" />
+                <span className="text-xs font-semibold text-white/90">PRO FEATURES</span>
+              </div>
+              <p className="text-xs text-white/70 mb-3">Unlock AI insights, advanced analytics & more</p>
+              <button className="w-full bg-white text-violet-600 font-semibold py-2 px-3 rounded-lg text-sm hover:bg-white/90 transition-colors">
+                Upgrade Now
+              </button>
+            </div>
           </div>
         </div>
       )}

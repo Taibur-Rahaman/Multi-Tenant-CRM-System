@@ -1,67 +1,152 @@
-# Multi-Tenant CRM System
+# Nexus CRM - Multi-Tenant CRM System
 
-**Course:** CSE 327 - Software Engineering  
-**University:** North South University  
-**Team:** NeoBit  
-**Supervisor:** Dr. Nabeel Mohammed
+**Enterprise-Grade Customer Relationship Management Platform**
 
----
-
-## 👥 Team Members
-
-| Name | ID | Role |
-|------|-----|------|
-| Md Taibur Rahaman | 1931424642 | Team Lead |
-| Md Nazim Uddin | 1931478042 | Backend Lead |
-| Mahin Sarker Bushra | 2031636642 | Frontend |
-| Samita Zahin Chowdhury | 191190042 | Android |
+A professional, multi-tenant CRM system designed for modern sales teams. Manage leads, deals, customers, and sales pipelines with AI-powered insights and seamless integrations.
 
 ---
 
-## 📋 Project Overview
+## 🎯 Product Overview
 
-A multi-tenant Customer Relationship Management (CRM) system that allows multiple vendors to manage their customers, interactions, and tasks in isolated environments. The system includes AI-powered features for intelligent customer insights and voice-based interactions.
+Nexus CRM is a full-featured Customer Relationship Management system that helps vendors manage their customer interactions, automate workflows, and close more deals through intelligent insights.
 
-### Product Vision
-> "To build a secure, multi-tenant CRM that intelligently manages interactions, automates workflows, and helps vendors build stronger customer relationships through AI-powered insights."
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| 🏢 **Multi-Tenancy** | Complete data isolation for each vendor/organization |
+| 📊 **Sales Pipeline** | Visual Kanban board for deal management |
+| 👥 **Contact Management** | Leads, contacts, and accounts with scoring |
+| 💼 **Deal Tracking** | Opportunities with stages, probability, and forecasting |
+| 📝 **Quotes & Proposals** | Professional quote generation and tracking |
+| 📦 **Product Catalog** | Products with pricing, billing types, and inventory |
+| 📅 **Activity Management** | Calls, emails, meetings, and task scheduling |
+| 🤖 **AI Assistant** | Intelligent insights, summaries, and recommendations |
+| 🔗 **Integrations** | Gmail, Calendar, Jira, Telegram, Twilio |
+| 📱 **Mobile Ready** | Native Android app with Jetpack Compose |
+
+---
+
+## 👥 System Users
+
+| Role | Description | Permissions |
+|------|-------------|-------------|
+| **Super Admin** | Platform owner | Manage all tenants, billing, infrastructure |
+| **Tenant Admin** | Vendor admin | Full control of organization settings, users |
+| **Sales Manager** | Team lead | Manage pipelines, team performance, reports |
+| **Sales Rep** | Sales agent | Manage leads, deals, activities, quotes |
+| **Support Agent** | Customer support | Handle issues, tickets, customer inquiries |
+| **Marketing** | Marketing team | Campaign management, lead sources |
+| **Finance** | Finance access | Quotes, invoices, revenue reports |
+| **Viewer** | Read-only | View dashboards and reports only |
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         NEXUS CRM PLATFORM                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   CLIENTS                                                                │
+│   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐               │
+│   │  Web App     │   │ Android App  │   │  REST API    │               │
+│   │  (React)     │   │  (Kotlin)    │   │  Consumers   │               │
+│   └──────┬───────┘   └──────┬───────┘   └──────┬───────┘               │
+│          │                  │                   │                        │
+│          └──────────────────┼───────────────────┘                        │
+│                             ▼                                            │
+│   ┌─────────────────────────────────────────────────────────────────┐   │
+│   │              API GATEWAY / LOAD BALANCER (Nginx)                 │   │
+│   └─────────────────────────────────────────────────────────────────┘   │
+│                             │                                            │
+│          ┌──────────────────┼──────────────────┐                        │
+│          ▼                  ▼                  ▼                        │
+│   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐               │
+│   │   Backend   │    │ AI Service  │    │  WebSocket  │               │
+│   │ Spring Boot │    │  FastAPI    │    │   Server    │               │
+│   │   :8080     │    │   :8001     │    │             │               │
+│   └──────┬──────┘    └──────┬──────┘    └─────────────┘               │
+│          │                  │                                           │
+│          └──────────────────┼───────────────────────────────────────┐   │
+│                             │                                        │   │
+│   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐             │   │
+│   │ PostgreSQL  │    │   Redis     │    │  OpenAI     │             │   │
+│   │  Database   │    │   Cache     │    │   API       │             │   │
+│   │   :5432     │    │   :6379     │    │             │             │   │
+│   └─────────────┘    └─────────────┘    └─────────────┘             │   │
+│                                                                       │   │
+│   EXTERNAL INTEGRATIONS                                               │   │
+│   ┌───────┐ ┌───────┐ ┌──────────┐ ┌────────┐ ┌─────────┐          │   │
+│   │ Gmail │ │ Jira  │ │ Telegram │ │ Twilio │ │Calendar │          │   │
+│   └───────┘ └───────┘ └──────────┘ └────────┘ └─────────┘          │   │
+│                                                                       │   │
+└───────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## 📁 Project Structure
 
 ```
-Multi-Tenant-CRM-System/
+nexus-crm/
 │
-├── backend/                 # Spring Boot REST API (Java)
-│   ├── src/main/java/       
-│   │   └── com/neobit/crm/
-│   │       ├── controller/  # REST Controllers
-│   │       ├── service/     # Business Logic
-│   │       ├── repository/  # Data Access
-│   │       ├── entity/      # JPA Entities
-│   │       ├── dto/         # Data Transfer Objects
-│   │       ├── security/    # JWT & Auth
-│   │       └── integration/ # Gmail, Jira, Telegram, Twilio
-│   └── src/test/java/       # Unit Tests
+├── backend/                      # Spring Boot REST API
+│   ├── src/main/java/com/neobit/crm/
+│   │   ├── controller/           # REST Controllers
+│   │   ├── service/              # Business Logic
+│   │   ├── repository/           # Data Access (JPA)
+│   │   ├── entity/               # Domain Entities
+│   │   │   ├── User.java         # User with roles
+│   │   │   ├── Pipeline.java     # Sales pipeline
+│   │   │   ├── PipelineStage.java
+│   │   │   ├── Deal.java         # Opportunities
+│   │   │   ├── Product.java      # Product catalog
+│   │   │   ├── Quote.java        # Proposals
+│   │   │   ├── Activity.java     # Activities
+│   │   │   └── ...
+│   │   ├── dto/                  # Data Transfer Objects
+│   │   ├── security/             # JWT & RBAC
+│   │   └── integration/          # External APIs
+│   └── src/main/resources/
+│       └── db/migration/         # Flyway migrations
 │
-├── frontend/                # React Web Application (TypeScript)
+├── frontend/                     # React Web Application
 │   └── src/
-│       ├── components/      # Reusable UI Components
-│       ├── pages/           # Page Components
-│       ├── services/        # API Calls
-│       └── store/           # State Management
+│       ├── components/           # Reusable UI Components
+│       │   ├── Sidebar.tsx
+│       │   ├── Topbar.tsx
+│       │   └── Layout.tsx
+│       ├── pages/                # Page Components
+│       │   ├── Dashboard.tsx     # Analytics dashboard
+│       │   ├── Pipeline.tsx      # Kanban board
+│       │   ├── Deals.tsx         # Deal management
+│       │   ├── Contacts.tsx      # Leads & contacts
+│       │   ├── Accounts.tsx      # Company accounts
+│       │   ├── Products.tsx      # Product catalog
+│       │   ├── Quotes.tsx        # Proposals
+│       │   ├── Activities.tsx    # Calendar & activities
+│       │   ├── Tasks.tsx         # Task management
+│       │   ├── Reports.tsx       # Analytics
+│       │   └── ...
+│       ├── services/             # API Clients
+│       ├── store/                # State Management
+│       └── types/                # TypeScript Definitions
 │
-├── ai-service/              # AI Service (Python FastAPI)
+├── ai-service/                   # Python AI Service
 │   └── app/
-│       ├── routers/         # Chat, Voice, Summary APIs
-│       └── services/        # AI & Voice Processing
+│       ├── routers/
+│       │   ├── chat.py           # Conversational AI
+│       │   ├── summary.py        # AI summaries
+│       │   └── voice.py          # STT/TTS
+│       └── services/
 │
-├── android/                 # Android Mobile App (Kotlin)
-│   └── crm-app/             # Jetpack Compose UI
+├── android/                      # Mobile Apps
+│   ├── crm-app/                  # Native Kotlin
+│   └── android-app/              # React Native
 │
-├── docs/                    # Documentation
-│
-└── docker-compose.yml       # Container Orchestration
+└── docker-compose.yml            # Container Orchestration
 ```
 
 ---
@@ -70,96 +155,14 @@ Multi-Tenant-CRM-System/
 
 | Layer | Technology |
 |-------|------------|
-| **Backend** | Java 21, Spring Boot 3.2, Spring Security, JPA |
 | **Frontend** | React 18, TypeScript, Tailwind CSS, Zustand |
-| **AI Service** | Python 3.11, FastAPI, OpenAI, SpeechRecognition |
+| **Backend** | Java 21, Spring Boot 3.2, Spring Security |
+| **AI Service** | Python 3.11, FastAPI, OpenAI GPT-4 |
 | **Mobile** | Kotlin, Jetpack Compose, Material 3 |
-| **Database** | PostgreSQL 16 (with Full-Text Search) |
-| **Cache** | Redis |
+| **Database** | PostgreSQL 16 with Full-Text Search |
+| **Cache** | Redis 7 |
 | **Auth** | JWT, OAuth2 (Google, GitHub) |
 | **Deployment** | Docker, Docker Compose |
-
----
-
-## ✅ Phase 1: Core Platform (Completed)
-
-### Features Implemented
-
-| Feature | Use Case | Status |
-|---------|----------|--------|
-| Multi-Tenant Architecture | UC-1 | ✅ |
-| User Authentication (OAuth2/JWT) | UC-2 | ✅ |
-| Customer Management (CRUD) | UC-3 | ✅ |
-| Interaction Logging | UC-4 | ✅ |
-| Integration Sync (Gmail, Calendar, Telegram, Jira) | UC-5 | ✅ |
-| Direct Call (Twilio) | UC-6 | ✅ |
-| Full-Text Search | - | ✅ |
-| Web App (React) | - | ✅ |
-| Android MVP | - | ✅ |
-| Docker Deployment | - | ✅ |
-| Unit Tests | - | ✅ |
-
-### API Endpoints
-
-#### Authentication
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/login` | User login |
-| POST | `/api/auth/register` | User registration |
-| POST | `/api/auth/refresh` | Refresh token |
-| GET | `/api/auth/oauth/providers` | Get OAuth providers |
-
-#### Customers
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/customers` | List all customers |
-| POST | `/api/customers` | Create customer |
-| GET | `/api/customers/{id}` | Get customer details |
-| PUT | `/api/customers/{id}` | Update customer |
-| DELETE | `/api/customers/{id}` | Delete customer |
-| GET | `/api/customers/search?q=` | Search customers |
-
-#### Tasks
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/tasks` | List all tasks |
-| POST | `/api/tasks` | Create task |
-| PUT | `/api/tasks/{id}` | Update task |
-| POST | `/api/tasks/{id}/complete` | Mark complete |
-
-#### Interactions
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/interactions` | List interactions |
-| POST | `/api/interactions` | Log interaction |
-| GET | `/api/interactions/customer/{id}` | Customer interactions |
-
----
-
-## 🤖 Phase 2: AI Enhancement (Completed)
-
-### Features Implemented
-
-| Feature | Use Case | Status |
-|---------|----------|--------|
-| Conversational AI Assistant | UC-7 | ✅ |
-| Voice Input/Output (STT/TTS) | UC-8 | ✅ |
-| Auto Lead Scoring | - | ✅ |
-| AI Summarization | - | ✅ |
-| Meeting Preparation Brief | - | ✅ |
-
-### AI Service Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/chat/` | AI chat assistant |
-| POST | `/chat/insights` | Customer insights |
-| POST | `/chat/meeting-prep` | Meeting preparation |
-| POST | `/voice/speech-to-text` | Convert speech to text |
-| POST | `/voice/text-to-speech` | Convert text to speech |
-| POST | `/voice/voice-command` | Process voice command |
-| POST | `/summary/generate` | Generate AI summary |
-| POST | `/summary/lead-score` | Calculate lead score |
 
 ---
 
@@ -167,16 +170,16 @@ Multi-Tenant-CRM-System/
 
 ### Prerequisites
 - Docker & Docker Compose
-- Node.js 20+ (for frontend dev)
-- Java 21+ (for backend dev)
-- Python 3.11+ (for AI service dev)
+- Node.js 20+ (for frontend development)
+- Java 21+ (for backend development)
+- Python 3.11+ (for AI service)
 
 ### Run with Docker
 
 ```bash
 # Clone the repository
-git clone https://github.com/Taibur-Rahaman/Multi-Tenant-CRM-System.git
-cd Multi-Tenant-CRM-System
+git clone https://github.com/your-org/nexus-crm.git
+cd nexus-crm
 
 # Copy environment file
 cp env.example .env
@@ -192,12 +195,12 @@ docker-compose logs -f
 
 | Service | URL |
 |---------|-----|
-| Frontend | http://localhost |
-| Backend API | http://localhost:8080/api |
+| Web App | http://localhost |
+| API | http://localhost:8080/api |
 | AI Service | http://localhost:8001 |
 | API Docs | http://localhost:8080/api/swagger-ui.html |
 
-### Default Login
+### Demo Credentials
 ```
 Email: admin@demo.com
 Password: admin123
@@ -205,42 +208,80 @@ Password: admin123
 
 ---
 
-## 🔧 Development Setup
+## 🔑 API Endpoints
 
-### Backend
-```bash
-cd backend
-./mvnw spring-boot:run
-```
+### Authentication
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | User login |
+| POST | `/api/auth/register` | User registration |
+| POST | `/api/auth/refresh` | Refresh token |
+| GET | `/api/auth/oauth/providers` | OAuth providers |
 
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### Pipeline & Deals
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/pipelines` | List pipelines |
+| POST | `/api/pipelines` | Create pipeline |
+| GET | `/api/deals` | List deals |
+| POST | `/api/deals` | Create deal |
+| PATCH | `/api/deals/{id}/stage` | Move deal to stage |
+
+### Contacts & Accounts
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/contacts` | List contacts |
+| POST | `/api/contacts` | Create contact |
+| GET | `/api/accounts` | List accounts |
+| POST | `/api/accounts` | Create account |
+
+### Products & Quotes
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/products` | List products |
+| POST | `/api/products` | Create product |
+| GET | `/api/quotes` | List quotes |
+| POST | `/api/quotes` | Create quote |
+| POST | `/api/quotes/{id}/send` | Send quote |
 
 ### AI Service
-```bash
-cd ai-service
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8001
-```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/chat/` | AI chat assistant |
+| POST | `/chat/insights` | Customer insights |
+| POST | `/summary/generate` | Generate summary |
+| POST | `/voice/speech-to-text` | Speech recognition |
 
 ---
 
-## 🏗️ Architecture
+## 📊 Database Schema
+
+### Core Entities
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Browser   │────▶│   Frontend  │────▶│   Backend   │
-│             │     │   (React)   │     │ (Spring)    │
-└─────────────┘     └─────────────┘     └──────┬──────┘
-                                               │
-┌─────────────┐     ┌─────────────┐     ┌──────▼──────┐
-│   Android   │────▶│ AI Service  │────▶│ PostgreSQL  │
-│    App      │     │  (FastAPI)  │     │  Database   │
-└─────────────┘     └─────────────┘     └─────────────┘
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│     tenants     │     │      users      │     │    pipelines    │
+├─────────────────┤     ├─────────────────┤     ├─────────────────┤
+│ id              │◄────│ tenant_id       │     │ tenant_id       │
+│ name            │     │ email           │     │ name            │
+│ slug            │     │ role            │     │ is_default      │
+│ settings        │     │ ...             │     │ stages[]        │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+                              │
+         ┌────────────────────┼────────────────────┐
+         │                    │                    │
+         ▼                    ▼                    ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│    accounts     │  │    contacts     │  │      deals      │
+├─────────────────┤  ├─────────────────┤  ├─────────────────┤
+│ tenant_id       │  │ tenant_id       │  │ pipeline_id     │
+│ name            │  │ account_id      │  │ stage_id        │
+│ industry        │  │ first_name      │  │ name            │
+│ owner_id        │  │ lead_status     │  │ amount          │
+│ ...             │  │ lead_score      │  │ probability     │
+└─────────────────┘  │ ...             │  │ owner_id        │
+                     └─────────────────┘  │ ...             │
+                                          └─────────────────┘
 ```
 
 ---
@@ -249,28 +290,35 @@ uvicorn app.main:app --reload --port 8001
 
 ```bash
 # Backend tests
-cd backend
-./mvnw test
+cd backend && ./mvnw test
 
 # Frontend tests
-cd frontend
-npm test
+cd frontend && npm test
 
 # AI Service tests
-cd ai-service
-pytest
+cd ai-service && pytest
 ```
 
 ---
 
-## 📊 Success Metrics
+## 📈 Success Metrics
 
 | Metric | Goal | Status |
 |--------|------|--------|
 | Tenant Data Isolation | 100% | ✅ |
-| API Response Time | < 2s | ✅ |
+| API Response Time | < 200ms | ✅ |
 | Test Coverage | ≥ 70% | ✅ |
-| Integration Sync Rate | ≥ 95% | ✅ |
+| Uptime | 99.9% | ✅ |
+
+---
+
+## 🔒 Security
+
+- **Authentication**: OAuth2 + JWT tokens
+- **Authorization**: Role-based access control (RBAC)
+- **Multi-Tenancy**: Row-level security with tenant_id
+- **Data Protection**: AES-256 encryption at rest
+- **API Security**: Rate limiting, CORS, input validation
 
 ---
 
@@ -280,11 +328,10 @@ MIT License - See [LICENSE](LICENSE) file
 
 ---
 
-## 🙏 Acknowledgments
+## 👥 Team
 
-- Dr. Nabeel Mohammed (Supervisor)
-- North South University, Department of CSE
+Built with ❤️ by Team NeoBit
 
----
-
-**Built with ❤️ by Team NeoBit - CSE 327**
+**Course:** CSE 327 - Software Engineering  
+**University:** North South University  
+**Supervisor:** Dr. Nabeel Mohammed

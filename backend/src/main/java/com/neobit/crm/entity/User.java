@@ -43,7 +43,7 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private UserRole role = UserRole.AGENT;
+    private UserRole role = UserRole.SALES_REP;
 
     @Column(name = "is_active")
     @Builder.Default
@@ -70,11 +70,63 @@ public class User {
     }
 
     public String getFullName() {
-        return (firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "");
+        String first = firstName != null ? firstName.trim() : "";
+        String last = lastName != null ? lastName.trim() : "";
+        return (first + " " + last).trim();
     }
 
+    /**
+     * Professional CRM User Roles
+     * 
+     * SUPER_ADMIN    - Platform owner, manages all tenants (SaaS admin)
+     * TENANT_ADMIN   - Vendor admin, full control of their organization
+     * SALES_MANAGER  - Manages sales team, pipelines, reports
+     * SALES_REP      - Sales agent, manages leads/deals/customers
+     * SUPPORT_AGENT  - Customer support, manages tickets/issues
+     * MARKETING      - Marketing team, manages campaigns
+     * FINANCE        - Finance access, quotes/invoices/reports
+     * VIEWER         - Read-only access
+     */
     public enum UserRole {
-        ADMIN, AGENT, VIEWER
+        SUPER_ADMIN,
+        TENANT_ADMIN,
+        SALES_MANAGER,
+        SALES_REP,
+        SUPPORT_AGENT,
+        MARKETING,
+        FINANCE,
+        VIEWER;
+        
+        // Legacy mapping for backward compatibility
+        public static UserRole fromLegacy(String legacy) {
+            return switch (legacy.toUpperCase()) {
+                case "ADMIN" -> TENANT_ADMIN;
+                case "AGENT" -> SALES_REP;
+                default -> VIEWER;
+            };
+        }
+        
+        public boolean canManageUsers() {
+            return this == SUPER_ADMIN || this == TENANT_ADMIN;
+        }
+        
+        public boolean canManagePipeline() {
+            return this == SUPER_ADMIN || this == TENANT_ADMIN || this == SALES_MANAGER;
+        }
+        
+        public boolean canAccessReports() {
+            return this != VIEWER;
+        }
+        
+        public boolean canManageDeals() {
+            return this == SUPER_ADMIN || this == TENANT_ADMIN || 
+                   this == SALES_MANAGER || this == SALES_REP;
+        }
+        
+        public boolean canApproveQuotes() {
+            return this == SUPER_ADMIN || this == TENANT_ADMIN || 
+                   this == SALES_MANAGER || this == FINANCE;
+        }
     }
 }
 
