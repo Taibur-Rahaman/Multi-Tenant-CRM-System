@@ -6,6 +6,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
@@ -157,7 +158,7 @@ public class Deal {
         if (amount == null || probability == null) {
             return BigDecimal.ZERO;
         }
-        return amount.multiply(BigDecimal.valueOf(probability / 100.0));
+        return amount.multiply(BigDecimal.valueOf(probability).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
     }
 
     public enum DealStatus {

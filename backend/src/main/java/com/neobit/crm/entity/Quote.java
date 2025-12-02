@@ -6,6 +6,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
@@ -164,13 +165,13 @@ public class Quote {
 
         BigDecimal discount = BigDecimal.ZERO;
         if (discountType == DiscountType.PERCENT && discountValue != null) {
-            discount = subtotal.multiply(discountValue.divide(BigDecimal.valueOf(100)));
+            discount = subtotal.multiply(discountValue.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
         } else if (discountType == DiscountType.AMOUNT && discountValue != null) {
             discount = discountValue;
         }
 
         this.taxAmount = lineItems.stream()
-                .map(item -> item.getTotalPrice().multiply(item.getTaxRate().divide(BigDecimal.valueOf(100))))
+                .map(item -> item.getTotalPrice().multiply(item.getTaxRate().divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         this.totalAmount = subtotal.subtract(discount).add(taxAmount);

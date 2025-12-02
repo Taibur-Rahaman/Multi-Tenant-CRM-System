@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
   Bell, 
@@ -13,9 +14,15 @@ import {
 import { useAuthStore } from '../store/authStore';
 
 const Topbar: React.FC = () => {
+  const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const notifications = [
     { id: 1, title: 'Deal moved to Negotiation', message: 'Acme Corp - $50,000', time: '2m ago', unread: true },
@@ -173,7 +180,7 @@ const Topbar: React.FC = () => {
                 <div className="dropdown-divider" />
                 <div className="py-1">
                   <button 
-                    onClick={logout}
+                    onClick={handleLogout}
                     className="dropdown-item w-full text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     <LogOut size={16} />
