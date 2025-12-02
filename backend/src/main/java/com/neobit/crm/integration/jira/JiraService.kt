@@ -58,16 +58,19 @@ class JiraService(
     )
     
     fun getJiraConfig(tenantId: UUID): JiraConfig? {
-        val config = integrationConfigRepository.findByTenantIdAndIntegrationType(
+        val configEntity = integrationConfigRepository.findByTenantIdAndIntegrationType(
             tenantId, "jira"
-        ) ?: return null
+        ).orElse(null) ?: return null
         
-        val configMap = objectMapper.readValue(config.configData, Map::class.java)
+        if (configEntity.isEnabled != true) return null
+        
+        val configMap = configEntity.config ?: emptyMap()
+        val credentialsMap = configEntity.credentials ?: emptyMap()
         
         return JiraConfig(
             baseUrl = configMap["baseUrl"] as? String ?: return null,
-            email = configMap["email"] as? String ?: return null,
-            apiToken = configMap["apiToken"] as? String ?: return null
+            email = credentialsMap["email"] as? String ?: return null,
+            apiToken = credentialsMap["apiToken"] as? String ?: return null
         )
     }
     

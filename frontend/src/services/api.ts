@@ -175,12 +175,119 @@ export const issuesApi = {
     api.get(`/issues/customer/${customerId}`, { params }),
   getByStatus: (status: string, params?: { page?: number; size?: number }) => 
     api.get(`/issues/status/${status}`, { params }),
+  search: (q: string, params?: { page?: number; size?: number }) =>
+    api.get('/issues/search', { params: { q, ...params } }),
   create: (data: unknown) => api.post('/issues', data),
   update: (id: string, data: unknown) => api.put(`/issues/${id}`, data),
   updateStatus: (id: string, status: string) => api.patch(`/issues/${id}/status`, { status }),
   delete: (id: string) => api.delete(`/issues/${id}`),
   syncFromJira: () => api.post('/issues/sync/jira'),
   syncFromLinear: () => api.post('/issues/sync/linear'),
+  syncAll: () => api.post('/issues/sync/all'),
+  getSyncStatus: () => api.get('/issues/sync/status'),
+};
+
+// Integration Config API
+export interface IntegrationStatus {
+  integrationType: string;
+  isEnabled: boolean;
+  isConfigured: boolean;
+  lastSyncAt?: string;
+  syncStatus?: string;
+  config?: Record<string, unknown>;
+}
+
+export interface JiraConfigRequest {
+  baseUrl: string;
+  email: string;
+  apiToken: string;
+  defaultProjectKey?: string;
+}
+
+export const integrationsApi = {
+  // Get all integration statuses
+  getAllStatus: () => 
+    api.get<{ success: boolean; data: IntegrationStatus[] }>('/integrations/status'),
+  
+  // Get specific integration status
+  getStatus: (integrationType: string) => 
+    api.get<{ success: boolean; data: IntegrationStatus }>(`/integrations/status/${integrationType}`),
+  
+  // Save Jira configuration
+  saveJiraConfig: (config: JiraConfigRequest) => 
+    api.post<{ success: boolean; data: IntegrationStatus; message: string }>('/integrations/config/jira', config),
+  
+  // Test Jira connection
+  testJiraConnection: () => 
+    api.post<{ success: boolean; data: { connected: boolean; baseUrl?: string; error?: string } }>('/integrations/jira/test'),
+  
+  // Enable integration
+  enable: (integrationType: string) => 
+    api.post<{ success: boolean; data: IntegrationStatus }>(`/integrations/${integrationType}/enable`),
+  
+  // Disable integration
+  disable: (integrationType: string) => 
+    api.post<{ success: boolean; data: IntegrationStatus }>(`/integrations/${integrationType}/disable`),
+  
+  // Delete integration
+  delete: (integrationType: string) => 
+    api.delete(`/integrations/${integrationType}`),
+
+  // Direct Jira API endpoints
+  jira: {
+    createIssue: (data: {
+      projectKey: string;
+      summary: string;
+      description?: string;
+      issueType?: string;
+      priority?: string;
+      labels?: string[];
+      assigneeAccountId?: string;
+    }) => api.post('/integrations/jira/issues', data),
+    
+    getIssue: (issueKey: string) => 
+      api.get(`/integrations/jira/issues/${issueKey}`),
+    
+    searchIssues: (jql: string, maxResults?: number) => 
+      api.get('/integrations/jira/search', { params: { jql, maxResults: maxResults || 50 } }),
+    
+    updateIssue: (issueKey: string, data: {
+      summary?: string;
+      description?: string;
+      priority?: string;
+      labels?: string[];
+      status?: string;
+    }) => api.put(`/integrations/jira/issues/${issueKey}`, data),
+    
+    transitionIssue: (issueKey: string, status: string) => 
+      api.post(`/integrations/jira/issues/${issueKey}/transition`, { status }),
+    
+    addComment: (issueKey: string, comment: string) => 
+      api.post(`/integrations/jira/issues/${issueKey}/comment`, { comment }),
+  },
+
+  // Telegram Integration
+  telegram: {
+    // Get Telegram bot info
+    getBotInfo: () => 
+      api.get<{ success: boolean; data: { id: number; username: string; firstName: string } }>('/integrations/telegram/bot-info'),
+    
+    // Configure Telegram chat IDs for notifications
+    configureChatIds: (chatIds: number[]) => 
+      api.post<{ success: boolean; data: IntegrationStatus }>('/integrations/telegram/chat-ids', { chatIds }),
+    
+    // Send test message
+    sendTestMessage: (chatId: number, message: string) => 
+      api.post<{ success: boolean }>('/integrations/telegram/test', { chatId, message }),
+    
+    // Set webhook URL
+    setWebhook: (webhookUrl: string) => 
+      api.post<{ success: boolean }>('/integrations/telegram/webhook', { webhookUrl }),
+    
+    // Delete webhook
+    deleteWebhook: () => 
+      api.delete<{ success: boolean }>('/integrations/telegram/webhook'),
+  },
 };
 
 export default api;

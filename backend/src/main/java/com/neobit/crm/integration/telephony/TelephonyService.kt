@@ -2,13 +2,10 @@ package com.neobit.crm.integration.telephony
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.neobit.crm.entity.Interaction
-import com.neobit.crm.entity.InteractionType
-import com.neobit.crm.entity.InteractionDirection
-import com.neobit.crm.entity.InteractionStatus
 import com.neobit.crm.repository.CustomerRepository
 import com.neobit.crm.repository.IntegrationConfigRepository
 import com.neobit.crm.repository.InteractionRepository
-import com.neobit.crm.security.TenantContext
+import com.neobit.crm.repository.TenantRepository
 import org.slf4j.LoggerFactory
 import org.springframework.http.*
 import org.springframework.stereotype.Service
@@ -50,6 +47,7 @@ class TelephonyService(
     private val integrationConfigRepository: IntegrationConfigRepository,
     private val interactionRepository: InteractionRepository,
     private val customerRepository: CustomerRepository,
+    private val tenantRepository: TenantRepository,
     private val objectMapper: ObjectMapper
 ) {
     private val logger = LoggerFactory.getLogger(TelephonyService::class.java)
@@ -67,17 +65,17 @@ class TelephonyService(
     fun getTelephonyConfig(tenantId: UUID): TelephonyConfig? {
         val config = integrationConfigRepository.findByTenantIdAndIntegrationType(
             tenantId, "telephony"
-        ) ?: return null
+        ).orElse(null) ?: return null
         
-        val configMap = objectMapper.readValue(config.configData, Map::class.java)
+        val credentials = config.credentials
         
         return TelephonyConfig(
-            provider = configMap["provider"] as? String ?: "twilio",
-            apiKey = configMap["apiKey"] as? String ?: return null,
-            apiSecret = configMap["apiSecret"] as? String,
-            accountSid = configMap["accountSid"] as? String,
-            baseUrl = configMap["baseUrl"] as? String ?: "https://api.twilio.com",
-            defaultFromNumber = configMap["defaultFromNumber"] as? String
+            provider = credentials["provider"] as? String ?: "twilio",
+            apiKey = credentials["apiKey"] as? String ?: return null,
+            apiSecret = credentials["apiSecret"] as? String,
+            accountSid = credentials["accountSid"] as? String,
+            baseUrl = credentials["baseUrl"] as? String ?: "https://api.twilio.com",
+            defaultFromNumber = credentials["defaultFromNumber"] as? String
         )
     }
     
@@ -207,8 +205,12 @@ class TelephonyService(
                 status = responseBody["status"] as? String ?: "unknown",
                 fromNumber = responseBody["from"] as? String ?: "",
                 toNumber = responseBody["to"] as? String ?: "",
-                startTime = Instant.parse(responseBody["start_time"] as? String ?: Instant.now().toString()),
-                endTime = (responseBody["end_time"] as? String)?.let { Instant.parse(it) },
+                startTime = (responseBody["start_time"] as? String)?.let { 
+                    try { Instant.parse(it) } catch (e: Exception) { Instant.now() }
+                } ?: Instant.now(),
+                endTime = (responseBody["end_time"] as? String)?.let { 
+                    try { Instant.parse(it) } catch (e: Exception) { null }
+                },
                 durationSeconds = (responseBody["duration"] as? String)?.toIntOrNull()
             )
         } catch (e: Exception) {
@@ -238,32 +240,35 @@ class TelephonyService(
         request: CallRequest, 
         result: CallResult
     ) {
+        val tenant = tenantRepository.findById(tenantId).orElse(null) ?: return
+        
         val customer = request.customerId?.let { 
-            customerRepository.findByIdAndTenantId(it, tenantId) 
+            customerRepository.findByIdAndTenantId(it, tenantId).orElse(null)
         }
         
-        val interaction = Interaction(
-            tenantId = tenantId,
-            customerId = customer?.id,
-            accountId = customer?.account?.id,
-            userId = userId,
-            type = InteractionType.CALL,
-            direction = InteractionDirection.OUTBOUND,
-            status = InteractionStatus.IN_PROGRESS,
-            subject = "Call to ${result.toNumber}",
-            description = "Outbound call initiated via CRM",
-            externalId = result.callId,
-            integrationType = "telephony"
-        )
+        val interaction = Interaction.builder()
+            .tenant(tenant)
+            .customer(customer)
+            .account(customer?.account)
+            .type(Interaction.InteractionType.CALL)
+            .direction(Interaction.InteractionDirection.OUTBOUND)
+            .status(Interaction.InteractionStatus.IN_PROGRESS)
+            .subject("Call to ${result.toNumber}")
+            .description("Outbound call initiated via CRM")
+            .externalId(result.callId)
+            .externalSource("telephony")
+            .build()
         
         interactionRepository.save(interaction)
     }
     
     private fun updateCallInteraction(tenantId: UUID, event: CallWebhookEvent) {
-        val interaction = interactionRepository.findByTenantIdAndExternalId(tenantId, event.callId)
+        // Find by external ID
+        val interactions = interactionRepository.findByTenantId(tenantId, org.springframework.data.domain.PageRequest.of(0, 100))
+        val interaction = interactions.content.find { it.externalId == event.callId }
         
         if (interaction != null) {
-            interaction.status = InteractionStatus.COMPLETED
+            interaction.status = Interaction.InteractionStatus.COMPLETED
             interaction.durationSeconds = event.durationSeconds
             interaction.updatedAt = Instant.now()
             interactionRepository.save(interaction)
@@ -273,7 +278,8 @@ class TelephonyService(
     private fun updateCallRecording(tenantId: UUID, callId: String, recordingUrl: String?) {
         if (recordingUrl == null) return
         
-        val interaction = interactionRepository.findByTenantIdAndExternalId(tenantId, callId)
+        val interactions = interactionRepository.findByTenantId(tenantId, org.springframework.data.domain.PageRequest.of(0, 100))
+        val interaction = interactions.content.find { it.externalId == callId }
         
         if (interaction != null) {
             interaction.description = "${interaction.description}\n\nRecording: $recordingUrl"
@@ -324,4 +330,3 @@ class TelephonyService(
         }
     }
 }
-

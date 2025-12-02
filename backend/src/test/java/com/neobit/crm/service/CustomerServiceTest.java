@@ -1,11 +1,12 @@
 package com.neobit.crm.service;
 
+import com.neobit.crm.dto.common.PageResponse;
 import com.neobit.crm.dto.customer.CreateCustomerRequest;
 import com.neobit.crm.dto.customer.CustomerDTO;
 import com.neobit.crm.entity.Customer;
 import com.neobit.crm.entity.Tenant;
 import com.neobit.crm.mapper.CustomerMapper;
-import com.neobit.crm.repository.CustomerRepository;
+import com.neobit.crm.repository.*;
 import com.neobit.crm.security.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,9 +35,24 @@ class CustomerServiceTest {
 
     @Mock
     private CustomerRepository customerRepository;
+    
+    @Mock
+    private TenantRepository tenantRepository;
+    
+    @Mock
+    private AccountRepository accountRepository;
+    
+    @Mock
+    private UserRepository userRepository;
 
     @Mock
     private CustomerMapper customerMapper;
+    
+    @Mock
+    private TelegramNotificationService telegramNotificationService;
+    
+    @Mock
+    private WebSocketNotificationService webSocketNotificationService;
 
     @InjectMocks
     private CustomerService customerService;
@@ -82,16 +98,16 @@ class CustomerServiceTest {
         PageRequest pageable = PageRequest.of(0, 10);
         Page<Customer> customerPage = new PageImpl<>(List.of(testCustomer));
         
-        when(customerRepository.findAllByTenantId(tenantId, pageable)).thenReturn(customerPage);
+        when(customerRepository.findByTenantId(tenantId, pageable)).thenReturn(customerPage);
         when(customerMapper.toDTO(any(Customer.class))).thenReturn(testCustomerDTO);
 
         // Act
-        Page<CustomerDTO> result = customerService.getAllCustomers(pageable);
+        PageResponse<CustomerDTO> result = customerService.getCustomers(pageable);
 
         // Assert
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        verify(customerRepository).findAllByTenantId(tenantId, pageable);
+        verify(customerRepository).findByTenantId(tenantId, pageable);
     }
 
     @Test
@@ -118,7 +134,13 @@ class CustomerServiceTest {
         request.setLastName("Smith");
         request.setEmail("jane.smith@example.com");
 
-        when(customerMapper.toEntity(any(CreateCustomerRequest.class))).thenReturn(testCustomer);
+        Tenant tenant = Tenant.builder()
+                .id(tenantId)
+                .name("Test Tenant")
+                .slug("test")
+                .build();
+        
+        when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
         when(customerRepository.save(any(Customer.class))).thenReturn(testCustomer);
         when(customerMapper.toDTO(any(Customer.class))).thenReturn(testCustomerDTO);
 

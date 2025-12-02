@@ -288,3 +288,63 @@ export interface DashboardStats {
   interactionsByType: Record<string, number>;
 }
 
+// Issue Types
+export type IssueStatus = 'todo' | 'in_progress' | 'done' | 'cancelled';
+export type IssuePriority = 'lowest' | 'low' | 'medium' | 'high' | 'highest';
+export type IssueProvider = 'jira' | 'linear' | 'internal';
+
+export interface Issue {
+  id: string;
+  externalId?: string;
+  externalKey: string;
+  title: string;
+  description?: string;
+  status: IssueStatus;
+  priority: IssuePriority;
+  assignee?: string;
+  provider: IssueProvider;
+  url?: string;
+  customerId?: string;
+  customerName?: string;
+  labels: string[];
+  resolvedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateIssueRequest {
+  title: string;
+  description?: string;
+  priority?: IssuePriority;
+  assignee?: string;
+  customerId?: string;
+  customerName?: string;
+  labels?: string[];
+}
+
+export interface IssueSyncStatus {
+  totalIssues: number;
+  jiraIssues: number;
+  linearIssues: number;
+  internalIssues: number;
+  jiraConfigured: boolean;
+  linearConfigured: boolean;
+}
+
+// Integration Types
+export interface IntegrationConfig {
+  integrationType: string;
+  isEnabled: boolean;
+  isConfigured: boolean;
+  lastSyncAt?: string;
+  syncStatus?: string;
+  config?: Record<string, unknown>;
+}
+
+export interface JiraConfig {
+  baseUrl: string;
+  email: string;
+  apiToken: string;
+  defaultProjectKey?: string;
+}
+

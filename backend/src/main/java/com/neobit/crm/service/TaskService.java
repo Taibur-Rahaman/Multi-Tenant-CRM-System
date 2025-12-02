@@ -9,6 +9,7 @@ import com.neobit.crm.mapper.TaskMapper;
 import com.neobit.crm.repository.*;
 import com.neobit.crm.security.TenantContext;
 import com.neobit.crm.security.UserPrincipal;
+import com.neobit.crm.service.TelegramNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,6 +32,8 @@ public class TaskService {
     private final InteractionRepository interactionRepository;
     private final UserRepository userRepository;
     private final TaskMapper taskMapper;
+    private final TelegramNotificationService telegramNotificationService;
+    private final WebSocketNotificationService webSocketNotificationService;
     
     public PageResponse<TaskDTO> getTasks(Pageable pageable) {
         UUID tenantId = TenantContext.getCurrentTenant();
@@ -112,7 +115,14 @@ public class TaskService {
             task.setAssignedTo(createdBy);
         }
         
-        return taskMapper.toDTO(taskRepository.save(task));
+        Task savedTask = taskRepository.save(task);
+        TaskDTO taskDTO = taskMapper.toDTO(savedTask);
+        
+        // Send notifications
+        telegramNotificationService.notifyTaskCreated(tenantId, savedTask);
+        webSocketNotificationService.notifyTaskUpdate(tenantId, "created", taskDTO);
+        
+        return taskDTO;
     }
     
     @Transactional
@@ -133,7 +143,14 @@ public class TaskService {
             task.setAssignedTo(assignedTo);
         }
         
-        return taskMapper.toDTO(taskRepository.save(task));
+        Task savedTask = taskRepository.save(task);
+        TaskDTO taskDTO = taskMapper.toDTO(savedTask);
+        
+        // Send notifications
+        telegramNotificationService.notifyTaskUpdated(tenantId, savedTask);
+        webSocketNotificationService.notifyTaskUpdate(tenantId, "updated", taskDTO);
+        
+        return taskDTO;
     }
     
     @Transactional
@@ -145,7 +162,14 @@ public class TaskService {
         task.setStatus("completed");
         task.setCompletedAt(Instant.now());
         
-        return taskMapper.toDTO(taskRepository.save(task));
+        Task savedTask = taskRepository.save(task);
+        TaskDTO taskDTO = taskMapper.toDTO(savedTask);
+        
+        // Send notifications
+        telegramNotificationService.notifyTaskCompleted(tenantId, savedTask);
+        webSocketNotificationService.notifyTaskUpdate(tenantId, "completed", taskDTO);
+        
+        return taskDTO;
     }
     
     @Transactional
@@ -153,7 +177,13 @@ public class TaskService {
         UUID tenantId = TenantContext.getCurrentTenant();
         Task task = taskRepository.findByIdAndTenantId(taskId, tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task", "id", taskId));
+        
+        String taskTitle = task.getTitle();
         taskRepository.delete(task);
+        
+        // Send notifications
+        telegramNotificationService.notifyTaskDeleted(tenantId, taskTitle);
+        webSocketNotificationService.notifyTaskUpdate(tenantId, "deleted", java.util.Map.of("id", taskId.toString()));
     }
 }
 

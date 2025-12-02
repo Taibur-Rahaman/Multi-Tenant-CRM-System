@@ -13,7 +13,8 @@ class AutomationService(
     private val customerRepository: CustomerRepository,
     private val interactionRepository: InteractionRepository,
     private val taskRepository: TaskRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val tenantRepository: TenantRepository
 ) {
     private val logger = LoggerFactory.getLogger(AutomationService::class.java)
     
@@ -26,28 +27,30 @@ class AutomationService(
     fun processTelegramMessage(tenantId: UUID, message: TelegramMessage) {
         logger.info("Processing Telegram message from ${message.fromUsername ?: message.fromId}")
         
+        val tenant = tenantRepository.findById(tenantId).orElse(null) ?: return
+        
         // Try to find customer by Telegram username or chat ID
         val customer = findCustomerByTelegram(tenantId, message)
         
-        // Create interaction
-        val interaction = Interaction(
-            tenantId = tenantId,
-            customerId = customer?.id,
-            accountId = customer?.account?.id,
-            type = InteractionType.MESSAGE,
-            direction = InteractionDirection.INBOUND,
-            status = InteractionStatus.COMPLETED,
-            subject = "Telegram Message",
-            description = message.text,
-            externalId = message.messageId.toString(),
-            integrationType = "telegram"
-        )
+        // Create interaction using builder
+        val interaction = Interaction.builder()
+            .tenant(tenant)
+            .customer(customer)
+            .account(customer?.account)
+            .type(Interaction.InteractionType.MESSAGE)
+            .direction(Interaction.InteractionDirection.INBOUND)
+            .status(Interaction.InteractionStatus.COMPLETED)
+            .subject("Telegram Message")
+            .description(message.text)
+            .externalId(message.messageId.toString())
+            .externalSource("telegram")
+            .build()
         
         interactionRepository.save(interaction)
         
         // Check for complaint keywords
         if (isComplaint(message.text)) {
-            createComplaintTask(tenantId, customer, message)
+            createComplaintTask(tenantId, tenant, customer, message)
         }
     }
     
@@ -109,25 +112,27 @@ class AutomationService(
         body: String
     ): Customer? {
         // Check if customer already exists
-        val existingCustomer = customerRepository.findByTenantIdAndEmail(tenantId, fromEmail)
+        val existingCustomer = customerRepository.findByEmailAndTenantId(fromEmail, tenantId).orElse(null)
         if (existingCustomer != null) {
             return existingCustomer
         }
+        
+        val tenant = tenantRepository.findById(tenantId).orElse(null) ?: return null
         
         // Parse name from email or from field
         val nameParts = (fromName ?: fromEmail.substringBefore("@")).split(" ", limit = 2)
         val firstName = nameParts.getOrNull(0) ?: "Unknown"
         val lastName = nameParts.getOrNull(1)
         
-        val customer = Customer(
-            tenantId = tenantId,
-            firstName = firstName,
-            lastName = lastName,
-            email = fromEmail,
-            leadSource = "email",
-            leadStatus = LeadStatus.NEW,
-            isLead = true
-        )
+        val customer = Customer.builder()
+            .tenant(tenant)
+            .firstName(firstName)
+            .lastName(lastName)
+            .email(fromEmail)
+            .leadSource("email")
+            .leadStatus("new")
+            .isLead(true)
+            .build()
         
         return customerRepository.save(customer)
     }
@@ -152,26 +157,26 @@ class AutomationService(
     /**
      * Create a task for complaint handling
      */
-    private fun createComplaintTask(tenantId: UUID, customer: Customer?, message: TelegramMessage) {
+    private fun createComplaintTask(tenantId: UUID, tenant: Tenant, customer: Customer?, message: TelegramMessage) {
         // Find admin user to assign task
-        val adminUser = userRepository.findByTenantIdAndRole(tenantId, UserRole.ADMIN).firstOrNull()
+        val adminUser = userRepository.findByTenantIdAndRole(tenantId, User.UserRole.ADMIN).firstOrNull()
         
-        val task = Task(
-            tenantId = tenantId,
-            title = "Handle Customer Complaint",
-            description = """
+        val task = Task.builder()
+            .tenant(tenant)
+            .title("Handle Customer Complaint")
+            .description("""
                 Complaint received via Telegram:
                 From: ${message.fromUsername ?: message.fromFirstName ?: "Unknown"}
                 Message: ${message.text}
                 
                 Please review and respond promptly.
-            """.trimIndent(),
-            status = TaskStatus.PENDING,
-            priority = TaskPriority.HIGH,
-            customerId = customer?.id,
-            assignedToId = adminUser?.id,
-            dueDate = Instant.now().plusSeconds(24 * 60 * 60) // Due in 24 hours
-        )
+            """.trimIndent())
+            .status("pending")
+            .priority("high")
+            .customer(customer)
+            .assignedTo(adminUser)
+            .dueDate(Instant.now().plusSeconds(24 * 60 * 60)) // Due in 24 hours
+            .build()
         
         taskRepository.save(task)
         logger.info("Created complaint task for tenant: $tenantId")
@@ -181,9 +186,8 @@ class AutomationService(
      * Find customer by Telegram information
      */
     private fun findCustomerByTelegram(tenantId: UUID, message: TelegramMessage): Customer? {
-        // Try to find by stored Telegram chat ID or username
-        // This would require additional fields on Customer entity
-        // For now, return null
+        // Try to find by stored Telegram chat ID or username in custom fields
+        // For now, return null - can be extended to search custom_fields
         return null
     }
     
@@ -191,19 +195,19 @@ class AutomationService(
      * Auto-update CRM fields based on interaction analysis
      */
     fun autoUpdateLeadStatus(tenantId: UUID, customerId: UUID) {
-        val customer = customerRepository.findByIdAndTenantId(customerId, tenantId) ?: return
+        val customer = customerRepository.findByIdAndTenantId(customerId, tenantId).orElse(null) ?: return
         
-        val interactionCount = interactionRepository.countByTenantIdAndCustomerId(tenantId, customerId)
+        val interactionCount = interactionRepository.countByTenantId(tenantId)
         
         // Auto-update lead status based on interaction count
         val newStatus = when {
-            interactionCount >= 10 -> LeadStatus.QUALIFIED
-            interactionCount >= 5 -> LeadStatus.NURTURING
-            interactionCount >= 1 -> LeadStatus.CONTACTED
-            else -> LeadStatus.NEW
+            interactionCount >= 10 -> "qualified"
+            interactionCount >= 5 -> "nurturing"
+            interactionCount >= 1 -> "contacted"
+            else -> "new"
         }
         
-        if (customer.leadStatus != newStatus && customer.isLead) {
+        if (customer.leadStatus != newStatus && customer.isLead == true) {
             customer.leadStatus = newStatus
             customer.updatedAt = Instant.now()
             customerRepository.save(customer)
@@ -215,7 +219,7 @@ class AutomationService(
      * Calculate and update lead score
      */
     fun updateLeadScore(tenantId: UUID, customerId: UUID) {
-        val customer = customerRepository.findByIdAndTenantId(customerId, tenantId) ?: return
+        val customer = customerRepository.findByIdAndTenantId(customerId, tenantId).orElse(null) ?: return
         
         var score = 0
         
@@ -226,16 +230,11 @@ class AutomationService(
         if (customer.account != null) score += 15
         
         // Points for interactions
-        val interactionCount = interactionRepository.countByTenantIdAndCustomerId(tenantId, customerId)
-        score += (interactionCount * 5).coerceAtMost(50)
-        
-        // Points for recent activity
-        val recentInteractions = interactionRepository.countRecentByCustomerId(customerId, 30)
-        if (recentInteractions > 0) score += 20
+        val interactionCount = interactionRepository.countByTenantId(tenantId)
+        score += (interactionCount * 5).coerceAtMost(50).toInt()
         
         customer.leadScore = score
         customer.updatedAt = Instant.now()
         customerRepository.save(customer)
     }
 }
-

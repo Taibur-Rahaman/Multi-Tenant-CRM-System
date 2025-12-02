@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { 
   Plus, 
   Search, 
@@ -11,8 +11,11 @@ import {
   Loader2,
   RefreshCw,
   Trash2,
-  Edit
+  Edit,
+  Settings,
+  Link2
 } from 'lucide-react';
+import { issuesApi, integrationsApi, IntegrationStatus } from '../services/api';
 
 interface Issue {
   id: string;
@@ -58,28 +61,11 @@ const statusIcons: Record<string, React.ElementType> = {
   'cancelled': AlertCircle,
 };
 
-// Demo Jira issues that will be "synced"
-const JIRA_DEMO_ISSUES: Omit<Issue, 'id' | 'createdAt' | 'updatedAt'>[] = [
-  { externalKey: 'CRM-101', title: 'Customer data export not working', description: 'Users report that CSV export times out for large datasets', status: 'in_progress', priority: 'high', assignee: 'Backend Team', provider: 'jira', url: 'https://your-company.atlassian.net/browse/CRM-101', customerName: 'TechCorp Inc', labels: ['bug', 'export'] },
-  { externalKey: 'CRM-102', title: 'Add bulk email feature', description: 'Feature request to send bulk emails to customer segments', status: 'todo', priority: 'medium', assignee: 'Product Team', provider: 'jira', url: 'https://your-company.atlassian.net/browse/CRM-102', labels: ['feature', 'email'] },
-  { externalKey: 'CRM-103', title: 'Dashboard charts not loading', description: 'Charts show loading spinner indefinitely on Safari', status: 'todo', priority: 'highest', assignee: 'Frontend Team', provider: 'jira', url: 'https://your-company.atlassian.net/browse/CRM-103', labels: ['bug', 'ui', 'safari'] },
-  { externalKey: 'CRM-104', title: 'Improve search performance', description: 'Search takes too long for accounts with 10k+ customers', status: 'in_progress', priority: 'high', assignee: 'Backend Team', provider: 'jira', url: 'https://your-company.atlassian.net/browse/CRM-104', labels: ['performance'] },
-  { externalKey: 'CRM-105', title: 'Add Slack integration', description: 'Notify sales team on Slack when new lead is created', status: 'done', priority: 'medium', assignee: 'Integration Team', provider: 'jira', url: 'https://your-company.atlassian.net/browse/CRM-105', labels: ['feature', 'integration'] },
-];
-
-// Demo Linear issues that will be "synced"
-const LINEAR_DEMO_ISSUES: Omit<Issue, 'id' | 'createdAt' | 'updatedAt'>[] = [
-  { externalKey: 'NEO-42', title: 'Mobile app crashes on login', description: 'Android users experiencing crashes when using Google OAuth', status: 'in_progress', priority: 'highest', assignee: 'Mobile Team', provider: 'linear', url: 'https://linear.app/neobit/issue/NEO-42', labels: ['bug', 'mobile', 'critical'] },
-  { externalKey: 'NEO-43', title: 'Implement dark mode', description: 'Add dark mode theme option for all pages', status: 'todo', priority: 'low', assignee: 'Design Team', provider: 'linear', url: 'https://linear.app/neobit/issue/NEO-43', labels: ['feature', 'ui'] },
-  { externalKey: 'NEO-44', title: 'API rate limiting', description: 'Add rate limiting to prevent API abuse', status: 'done', priority: 'high', assignee: 'Security Team', provider: 'linear', url: 'https://linear.app/neobit/issue/NEO-44', labels: ['security', 'api'] },
-  { externalKey: 'NEO-45', title: 'Add webhook support', description: 'Allow customers to configure webhooks for events', status: 'todo', priority: 'medium', assignee: 'Backend Team', provider: 'linear', url: 'https://linear.app/neobit/issue/NEO-45', labels: ['feature', 'api'] },
-  { externalKey: 'NEO-46', title: 'Fix timezone issues in reports', description: 'Reports show wrong dates for users in different timezones', status: 'in_progress', priority: 'medium', assignee: 'Backend Team', provider: 'linear', url: 'https://linear.app/neobit/issue/NEO-46', customerName: 'Global Corp', labels: ['bug', 'reports'] },
-];
-
 const Issues: React.FC = () => {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showJiraModal, setShowJiraModal] = useState(false);
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
   const [filterStatus, setFilterStatus] = useState('');
   const [filterProvider, setFilterProvider] = useState('');
@@ -91,136 +77,166 @@ const Issues: React.FC = () => {
     priority: 'medium',
     assignee: '',
     customerName: '',
-    labels: ''
+    labels: '',
+    createInJira: false,
+    jiraProjectKey: ''
   });
   const [saving, setSaving] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<{
+    jiraConfigured: boolean;
+    linearConfigured: boolean;
+    totalIssues: number;
+    jiraIssues: number;
+    linearIssues: number;
+    internalIssues: number;
+  } | null>(null);
+  
+  // Jira config form
+  const [jiraConfig, setJiraConfig] = useState({
+    baseUrl: '',
+    email: '',
+    apiToken: '',
+    defaultProjectKey: ''
+  });
+  const [jiraConnectionStatus, setJiraConnectionStatus] = useState<'idle' | 'testing' | 'connected' | 'error'>('idle');
+  const [jiraError, setJiraError] = useState('');
+
+  const loadIssues = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await issuesApi.getAll({ page: 0, size: 100 });
+      if (response.data?.data?.content) {
+        const mapped = response.data.data.content.map((issue: any) => ({
+          id: issue.id,
+          externalKey: issue.externalKey || issue.id.substring(0, 8),
+          title: issue.title,
+          description: issue.description || '',
+          status: issue.status,
+          priority: issue.priority || 'medium',
+          assignee: issue.assignee || 'Unassigned',
+          provider: issue.provider || 'internal',
+          url: issue.url || '',
+          customerName: issue.customerName,
+          labels: issue.labels || [],
+          createdAt: issue.createdAt,
+          updatedAt: issue.updatedAt
+        }));
+        setIssues(mapped);
+      }
+    } catch (error) {
+      console.error('Failed to load issues:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadSyncStatus = useCallback(async () => {
+    try {
+      const response = await issuesApi.getSyncStatus();
+      if (response.data?.data) {
+        setSyncStatus(response.data.data);
+      }
+    } catch (error) {
+      console.error('Failed to load sync status:', error);
+    }
+  }, []);
+
+  const loadJiraStatus = useCallback(async () => {
+    try {
+      const response = await integrationsApi.getStatus('jira');
+      if (response.data?.data?.isConfigured && response.data.data.config) {
+        const config = response.data.data.config;
+        setJiraConfig(prev => ({
+          ...prev,
+          baseUrl: (config.baseUrl as string) || '',
+          defaultProjectKey: (config.defaultProjectKey as string) || ''
+        }));
+        if (response.data.data.isEnabled) {
+          setJiraConnectionStatus('connected');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load Jira status:', error);
+    }
+  }, []);
 
   useEffect(() => {
     loadIssues();
-  }, []);
-
-  const loadIssues = () => {
-    setLoading(true);
-    const stored = localStorage.getItem('crm_issues');
-    if (stored) {
-      setIssues(JSON.parse(stored));
-    } else {
-      // Start with a few internal issues
-      const initialIssues: Issue[] = [
-        {
-          id: '1',
-          externalKey: 'INT-001',
-          title: 'Setup project documentation',
-          description: 'Create comprehensive documentation for the CRM system',
-          status: 'done',
-          priority: 'medium',
-          assignee: 'Documentation Team',
-          provider: 'internal',
-          url: '',
-          labels: ['docs'],
-          createdAt: new Date(Date.now() - 604800000).toISOString(),
-          updatedAt: new Date(Date.now() - 172800000).toISOString()
-        },
-        {
-          id: '2',
-          externalKey: 'INT-002',
-          title: 'Customer onboarding workflow',
-          description: 'Design and implement customer onboarding process',
-          status: 'in_progress',
-          priority: 'high',
-          assignee: 'Product Team',
-          provider: 'internal',
-          url: '',
-          customerName: 'New Customers',
-          labels: ['workflow', 'onboarding'],
-          createdAt: new Date(Date.now() - 259200000).toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      ];
-      setIssues(initialIssues);
-      localStorage.setItem('crm_issues', JSON.stringify(initialIssues));
-    }
-    setLoading(false);
-  };
-
-  const saveIssues = (newIssues: Issue[]) => {
-    setIssues(newIssues);
-    localStorage.setItem('crm_issues', JSON.stringify(newIssues));
-  };
+    loadSyncStatus();
+    loadJiraStatus();
+  }, [loadIssues, loadSyncStatus, loadJiraStatus]);
 
   const handleSyncJira = async () => {
-    setSyncing('jira');
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Get existing Jira issue keys to avoid duplicates
-    const existingKeys = new Set(issues.filter(i => i.provider === 'jira').map(i => i.externalKey));
-    
-    // Add new issues that don't exist yet
-    const newIssues: Issue[] = JIRA_DEMO_ISSUES
-      .filter(issue => !existingKeys.has(issue.externalKey))
-      .map(issue => ({
-        ...issue,
-        id: `jira-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        createdAt: new Date(Date.now() - Math.random() * 604800000).toISOString(),
-        updatedAt: new Date().toISOString()
-      }));
-    
-    if (newIssues.length > 0) {
-      const updated = [...newIssues, ...issues];
-      saveIssues(updated);
-      alert(`✅ Synced ${newIssues.length} issues from Jira!`);
-    } else {
-      alert('ℹ️ All Jira issues are already synced.');
+    if (!syncStatus?.jiraConfigured) {
+      setShowJiraModal(true);
+      return;
     }
     
-    setSyncing(null);
+    setSyncing('jira');
+    try {
+      const response = await issuesApi.syncFromJira();
+      if (response.data?.data) {
+        const count = response.data.data.syncedCount || 0;
+        alert(`✅ Synced ${count} issues from Jira!`);
+        loadIssues();
+        loadSyncStatus();
+      }
+    } catch (error: any) {
+      console.error('Jira sync failed:', error);
+      alert('Failed to sync from Jira: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setSyncing(null);
+    }
   };
 
   const handleSyncLinear = async () => {
     setSyncing('linear');
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Get existing Linear issue keys to avoid duplicates
-    const existingKeys = new Set(issues.filter(i => i.provider === 'linear').map(i => i.externalKey));
-    
-    // Add new issues that don't exist yet
-    const newIssues: Issue[] = LINEAR_DEMO_ISSUES
-      .filter(issue => !existingKeys.has(issue.externalKey))
-      .map(issue => ({
-        ...issue,
-        id: `linear-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        createdAt: new Date(Date.now() - Math.random() * 604800000).toISOString(),
-        updatedAt: new Date().toISOString()
-      }));
-    
-    if (newIssues.length > 0) {
-      const updated = [...newIssues, ...issues];
-      saveIssues(updated);
-      alert(`✅ Synced ${newIssues.length} issues from Linear!`);
-    } else {
-      alert('ℹ️ All Linear issues are already synced.');
+    try {
+      const response = await issuesApi.syncFromLinear();
+      if (response.data?.data) {
+        const count = response.data.data.syncedCount || 0;
+        alert(`✅ Synced ${count} issues from Linear!`);
+        loadIssues();
+        loadSyncStatus();
+      }
+    } catch (error: any) {
+      console.error('Linear sync failed:', error);
+      alert('Failed to sync from Linear: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setSyncing(null);
     }
-    
-    setSyncing(null);
   };
 
   const handleSyncAll = async () => {
     setSyncing('all');
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setSyncing('jira');
-    await handleSyncJira();
-    setSyncing('linear');
-    await handleSyncLinear();
-    setSyncing(null);
+    try {
+      const response = await issuesApi.syncAll();
+      if (response.data?.data) {
+        const { jiraSynced, linearSynced, totalSynced } = response.data.data;
+        alert(`✅ Sync complete!\n- Jira: ${jiraSynced} issues\n- Linear: ${linearSynced} issues\n- Total: ${totalSynced} issues`);
+        loadIssues();
+        loadSyncStatus();
+      }
+    } catch (error: any) {
+      console.error('Sync failed:', error);
+      alert('Failed to sync: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setSyncing(null);
+    }
   };
 
   const openCreateModal = () => {
     setEditingIssue(null);
-    setFormData({ title: '', description: '', priority: 'medium', assignee: '', customerName: '', labels: '' });
+    setFormData({ 
+      title: '', 
+      description: '', 
+      priority: 'medium', 
+      assignee: '', 
+      customerName: '', 
+      labels: '',
+      createInJira: false,
+      jiraProjectKey: ''
+    });
     setShowModal(true);
   };
 
@@ -232,7 +248,9 @@ const Issues: React.FC = () => {
       priority: issue.priority,
       assignee: issue.assignee || '',
       customerName: issue.customerName || '',
-      labels: issue.labels.join(', ')
+      labels: issue.labels.join(', '),
+      createInJira: false,
+      jiraProjectKey: ''
     });
     setShowModal(true);
   };
@@ -243,64 +261,146 @@ const Issues: React.FC = () => {
       return;
     }
     
+    if (formData.createInJira && !formData.jiraProjectKey.trim()) {
+      alert('Please enter a Jira project key');
+      return;
+    }
+    
     setSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    if (editingIssue) {
-      // Update existing issue
-      const updated = issues.map(issue => 
-        issue.id === editingIssue.id 
-          ? {
-              ...issue,
-              title: formData.title,
-              description: formData.description,
-              priority: formData.priority,
-              assignee: formData.assignee || 'Unassigned',
-              customerName: formData.customerName,
-              labels: formData.labels.split(',').map(l => l.trim()).filter(Boolean),
-              updatedAt: new Date().toISOString()
-            }
-          : issue
-      );
-      saveIssues(updated);
-    } else {
-      // Create new issue
-      const issueCount = issues.filter(i => i.provider === 'internal').length + 1;
-      const newIssue: Issue = {
-        id: `internal-${Date.now()}`,
-        externalKey: `INT-${String(issueCount).padStart(3, '0')}`,
+    try {
+      // If creating in Jira, use the Jira API first
+      if (formData.createInJira && !editingIssue) {
+        const jiraPayload = {
+          projectKey: formData.jiraProjectKey.toUpperCase(),
+          summary: formData.title,
+          description: formData.description || undefined,
+          issueType: 'Task',
+          priority: mapPriorityToJira(formData.priority),
+          labels: formData.labels.split(',').map(l => l.trim()).filter(Boolean)
+        };
+        
+        await integrationsApi.jira.createIssue(jiraPayload);
+        
+        // Sync to get the new issue
+        await issuesApi.syncFromJira();
+        
+        setShowModal(false);
+        loadIssues();
+        loadSyncStatus();
+        return;
+      }
+      
+      // Otherwise create/update internally
+      const payload = {
         title: formData.title,
         description: formData.description,
-        status: 'todo',
         priority: formData.priority,
         assignee: formData.assignee || 'Unassigned',
-        provider: 'internal',
-        url: '',
         customerName: formData.customerName,
-        labels: formData.labels.split(',').map(l => l.trim()).filter(Boolean),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        labels: formData.labels.split(',').map(l => l.trim()).filter(Boolean)
       };
-      saveIssues([newIssue, ...issues]);
+
+      if (editingIssue) {
+        await issuesApi.update(editingIssue.id, payload);
+      } else {
+        await issuesApi.create(payload);
+      }
+
+      setShowModal(false);
+      loadIssues();
+    } catch (error: any) {
+      console.error('Failed to save issue:', error);
+      alert('Failed to save issue: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  const mapPriorityToJira = (priority: string): string => {
+    const map: Record<string, string> = {
+      'highest': 'Highest',
+      'high': 'High',
+      'medium': 'Medium',
+      'low': 'Low',
+      'lowest': 'Lowest'
+    };
+    return map[priority] || 'Medium';
+  };
+
+  const handleStatusChange = async (issueId: string, newStatus: string) => {
+    try {
+      await issuesApi.updateStatus(issueId, newStatus);
+      setIssues(prev => prev.map(issue => 
+        issue.id === issueId 
+          ? { ...issue, status: newStatus, updatedAt: new Date().toISOString() }
+          : issue
+      ));
+    } catch (error: any) {
+      console.error('Failed to update status:', error);
+      alert('Failed to update status: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleDelete = async (issueId: string) => {
+    if (!confirm('Are you sure you want to delete this issue?')) return;
+    
+    try {
+      await issuesApi.delete(issueId);
+      setIssues(prev => prev.filter(issue => issue.id !== issueId));
+    } catch (error: any) {
+      console.error('Failed to delete issue:', error);
+      alert('Failed to delete issue: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleSaveJiraConfig = async () => {
+    if (!jiraConfig.baseUrl || !jiraConfig.email || !jiraConfig.apiToken) {
+      setJiraError('Please fill in all required fields');
+      return;
     }
 
-    setShowModal(false);
-    setSaving(false);
+    setSaving(true);
+    setJiraError('');
+    try {
+      const response = await integrationsApi.saveJiraConfig(jiraConfig);
+      if (response.data?.success) {
+        // Test the connection
+        setJiraConnectionStatus('testing');
+        const testResponse = await integrationsApi.testJiraConnection();
+        if (testResponse.data?.data?.connected) {
+          setJiraConnectionStatus('connected');
+          setShowJiraModal(false);
+          loadSyncStatus();
+          alert('✅ Jira connected successfully! You can now sync issues.');
+        } else {
+          setJiraConnectionStatus('error');
+          setJiraError(testResponse.data?.data?.error || 'Connection test failed');
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to save Jira config:', error);
+      setJiraError(error.response?.data?.message || 'Failed to save configuration');
+      setJiraConnectionStatus('error');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleStatusChange = (issueId: string, newStatus: string) => {
-    const updated = issues.map(issue => 
-      issue.id === issueId 
-        ? { ...issue, status: newStatus, updatedAt: new Date().toISOString() }
-        : issue
-    );
-    saveIssues(updated);
-  };
-
-  const handleDelete = (issueId: string) => {
-    if (!confirm('Are you sure you want to delete this issue?')) return;
-    const updated = issues.filter(issue => issue.id !== issueId);
-    saveIssues(updated);
+  const handleTestJiraConnection = async () => {
+    setJiraConnectionStatus('testing');
+    setJiraError('');
+    try {
+      const response = await integrationsApi.testJiraConnection();
+      if (response.data?.data?.connected) {
+        setJiraConnectionStatus('connected');
+      } else {
+        setJiraConnectionStatus('error');
+        setJiraError(response.data?.data?.error || 'Connection test failed');
+      }
+    } catch (error: any) {
+      setJiraConnectionStatus('error');
+      setJiraError(error.response?.data?.message || 'Connection test failed');
+    }
   };
 
   const filteredIssues = issues.filter(issue => {
@@ -341,6 +441,13 @@ const Issues: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <button 
+            onClick={() => setShowJiraModal(true)}
+            className="flex items-center gap-2 px-3 py-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+            title="Configure Jira"
+          >
+            <Settings size={18} />
+          </button>
+          <button 
             onClick={handleSyncAll}
             disabled={syncing !== null}
             className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
@@ -364,21 +471,30 @@ const Issues: React.FC = () => {
           <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
           <p className="text-xs text-slate-500">Total</p>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-200 text-center">
+        <div className={`bg-white rounded-xl p-4 shadow-sm border ${syncStatus?.jiraConfigured ? 'border-blue-200' : 'border-slate-200'} text-center`}>
           <div className="flex items-center justify-center gap-1">
             <span className="text-lg">🔷</span>
             <p className="text-2xl font-bold text-blue-600">{stats.jira}</p>
           </div>
           <p className="text-xs text-slate-500">Jira</p>
-          <button 
-            onClick={handleSyncJira}
-            disabled={syncing !== null}
-            className="mt-2 text-xs text-blue-600 hover:underline disabled:opacity-50"
-          >
-            {syncing === 'jira' ? 'Syncing...' : 'Sync'}
-          </button>
+          {syncStatus?.jiraConfigured ? (
+            <button 
+              onClick={handleSyncJira}
+              disabled={syncing !== null}
+              className="mt-2 text-xs text-blue-600 hover:underline disabled:opacity-50"
+            >
+              {syncing === 'jira' ? 'Syncing...' : 'Sync'}
+            </button>
+          ) : (
+            <button 
+              onClick={() => setShowJiraModal(true)}
+              className="mt-2 text-xs text-blue-600 hover:underline flex items-center gap-1 justify-center"
+            >
+              <Link2 size={12} /> Connect
+            </button>
+          )}
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-violet-200 text-center">
+        <div className={`bg-white rounded-xl p-4 shadow-sm border ${syncStatus?.linearConfigured ? 'border-violet-200' : 'border-slate-200'} text-center`}>
           <div className="flex items-center justify-center gap-1">
             <span className="text-lg">💜</span>
             <p className="text-2xl font-bold text-violet-600">{stats.linear}</p>
@@ -460,7 +576,20 @@ const Issues: React.FC = () => {
           <div className="text-center py-12">
             <AlertCircle className="mx-auto text-slate-300 mb-4" size={48} />
             <p className="text-slate-500 font-medium">No issues found</p>
-            <p className="text-sm text-slate-400 mt-1">Click "Sync" to import issues from Jira or Linear</p>
+            <p className="text-sm text-slate-400 mt-1">
+              {!syncStatus?.jiraConfigured 
+                ? 'Connect Jira to import your issues'
+                : 'Click "Sync" to import issues from Jira or Linear'}
+            </p>
+            {!syncStatus?.jiraConfigured && (
+              <button
+                onClick={() => setShowJiraModal(true)}
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Link2 size={16} />
+                Connect Jira
+              </button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -479,7 +608,7 @@ const Issues: React.FC = () => {
                 {filteredIssues.map((issue) => {
                   const StatusIcon = statusIcons[issue.status] || Circle;
                   const priorityInfo = priorityConfig[issue.priority] || priorityConfig.medium;
-                  const providerInfo = providerConfig[issue.provider];
+                  const providerInfo = providerConfig[issue.provider] || providerConfig.internal;
                   
                   return (
                     <tr key={issue.id} className="hover:bg-slate-50">
@@ -509,7 +638,7 @@ const Issues: React.FC = () => {
                         <select
                           value={issue.status}
                           onChange={(e) => handleStatusChange(issue.id, e.target.value)}
-                          className={`text-xs font-medium px-2 py-1 rounded-full border-0 cursor-pointer ${statusColors[issue.status]}`}
+                          className={`text-xs font-medium px-2 py-1 rounded-full border-0 cursor-pointer ${statusColors[issue.status] || statusColors.todo}`}
                         >
                           <option value="todo">To Do</option>
                           <option value="in_progress">In Progress</option>
@@ -566,7 +695,7 @@ const Issues: React.FC = () => {
         )}
       </div>
 
-      {/* Create/Edit Modal */}
+      {/* Create/Edit Issue Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
@@ -646,6 +775,40 @@ const Issues: React.FC = () => {
                   placeholder="bug, feature, urgent (comma separated)"
                 />
               </div>
+              
+              {/* Create in Jira option - only for new issues */}
+              {!editingIssue && syncStatus?.jiraConfigured && (
+                <div className="pt-4 border-t border-slate-200">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.createInJira}
+                      onChange={(e) => setFormData({...formData, createInJira: e.target.checked})}
+                      className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                    />
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">🔷</span>
+                      <span className="text-sm font-medium text-slate-700">Also create in Jira</span>
+                    </div>
+                  </label>
+                  
+                  {formData.createInJira && (
+                    <div className="mt-3 ml-7">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Jira Project Key *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.jiraProjectKey}
+                        onChange={(e) => setFormData({...formData, jiraProjectKey: e.target.value.toUpperCase()})}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 outline-none font-mono uppercase"
+                        placeholder="CRM"
+                      />
+                      <p className="text-xs text-slate-400 mt-1">The project key where the issue will be created</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="p-5 border-t border-slate-200 flex justify-end gap-3">
               <button
@@ -662,6 +825,135 @@ const Issues: React.FC = () => {
                 {saving && <Loader2 className="animate-spin" size={16} />}
                 {editingIssue ? 'Update' : 'Create'} Issue
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Jira Configuration Modal */}
+      {showJiraModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+            <div className="flex items-center justify-between p-5 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <span className="text-xl">🔷</span>
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">Connect Jira</h2>
+                  <p className="text-sm text-slate-500">Sync your Jira issues</p>
+                </div>
+              </div>
+              <button onClick={() => setShowJiraModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              {jiraConnectionStatus === 'connected' && (
+                <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700">
+                  <CheckCircle2 size={18} />
+                  <span className="text-sm font-medium">Connected to Jira</span>
+                </div>
+              )}
+              
+              {jiraError && (
+                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                  <AlertCircle size={18} />
+                  <span className="text-sm">{jiraError}</span>
+                </div>
+              )}
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Jira URL *
+                </label>
+                <input
+                  type="url"
+                  value={jiraConfig.baseUrl}
+                  onChange={(e) => setJiraConfig({...jiraConfig, baseUrl: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                  placeholder="https://your-company.atlassian.net"
+                />
+                <p className="text-xs text-slate-400 mt-1">Your Atlassian instance URL</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  value={jiraConfig.email}
+                  onChange={(e) => setJiraConfig({...jiraConfig, email: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                  placeholder="you@company.com"
+                />
+                <p className="text-xs text-slate-400 mt-1">Your Atlassian account email</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  API Token *
+                </label>
+                <input
+                  type="password"
+                  value={jiraConfig.apiToken}
+                  onChange={(e) => setJiraConfig({...jiraConfig, apiToken: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                  placeholder="••••••••••••••••"
+                />
+                <p className="text-xs text-slate-400 mt-1">
+                  Create an API token at{' '}
+                  <a 
+                    href="https://id.atlassian.com/manage-profile/security/api-tokens" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    Atlassian Account Settings
+                  </a>
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Default Project Key (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={jiraConfig.defaultProjectKey}
+                  onChange={(e) => setJiraConfig({...jiraConfig, defaultProjectKey: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                  placeholder="CRM"
+                />
+                <p className="text-xs text-slate-400 mt-1">Project key to sync issues from</p>
+              </div>
+            </div>
+            <div className="p-5 border-t border-slate-200 flex justify-between gap-3">
+              <button
+                onClick={handleTestJiraConnection}
+                disabled={saving || jiraConnectionStatus === 'testing' || !jiraConfig.baseUrl || !jiraConfig.email || !jiraConfig.apiToken}
+                className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {jiraConnectionStatus === 'testing' && <Loader2 className="animate-spin" size={16} />}
+                Test Connection
+              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowJiraModal(false)}
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveJiraConfig}
+                  disabled={saving || !jiraConfig.baseUrl || !jiraConfig.email || !jiraConfig.apiToken}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+                >
+                  {saving && <Loader2 className="animate-spin" size={16} />}
+                  Save & Connect
+                </button>
+              </div>
             </div>
           </div>
         </div>

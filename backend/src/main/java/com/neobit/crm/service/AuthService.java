@@ -1,7 +1,6 @@
 package com.neobit.crm.service;
 
 import com.neobit.crm.dto.auth.*;
-import com.neobit.crm.dto.user.UserDTO;
 import com.neobit.crm.entity.RefreshToken;
 import com.neobit.crm.entity.Tenant;
 import com.neobit.crm.entity.User;
@@ -23,6 +22,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
@@ -205,7 +205,9 @@ public class AuthService {
             params.add("code", code);
             
             HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-            ResponseEntity<Map> tokenResponse = restTemplate.postForEntity(tokenUrl, request, Map.class);
+            ResponseEntity<Map<String, Object>> tokenResponse = restTemplate.exchange(
+                tokenUrl, HttpMethod.POST, request, 
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {});
             
             String accessToken = (String) tokenResponse.getBody().get("access_token");
             if (accessToken == null) {
@@ -217,11 +219,11 @@ public class AuthService {
             userHeaders.setBearerAuth(accessToken);
             HttpEntity<Void> userRequest = new HttpEntity<>(userHeaders);
             
-            ResponseEntity<Map> userResponse = restTemplate.exchange(
+            ResponseEntity<Map<String, Object>> userResponse = restTemplate.exchange(
                 "https://api.github.com/user",
                 HttpMethod.GET,
                 userRequest,
-                Map.class
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
             );
             
             Map<String, Object> githubUser = userResponse.getBody();
@@ -231,14 +233,14 @@ public class AuthService {
             
             // If email is not public, fetch from emails endpoint
             if (email == null) {
-                ResponseEntity<java.util.List> emailsResponse = restTemplate.exchange(
+                ResponseEntity<java.util.List<Map<String, Object>>> emailsResponse = restTemplate.exchange(
                     "https://api.github.com/user/emails",
                     HttpMethod.GET,
                     userRequest,
-                    java.util.List.class
+                    new org.springframework.core.ParameterizedTypeReference<java.util.List<Map<String, Object>>>() {}
                 );
-                for (Object emailObj : emailsResponse.getBody()) {
-                    Map<String, Object> emailData = (Map<String, Object>) emailObj;
+                for (Map<String, Object> emailObj : emailsResponse.getBody()) {
+                    Map<String, Object> emailData = emailObj;
                     if (Boolean.TRUE.equals(emailData.get("primary"))) {
                         email = (String) emailData.get("email");
                         break;
@@ -275,7 +277,9 @@ public class AuthService {
             params.add("redirect_uri", googleRedirectUri);
             
             HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-            ResponseEntity<Map> tokenResponse = restTemplate.postForEntity(tokenUrl, request, Map.class);
+            ResponseEntity<Map<String, Object>> tokenResponse = restTemplate.exchange(
+                tokenUrl, HttpMethod.POST, request, 
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {});
             
             String accessToken = (String) tokenResponse.getBody().get("access_token");
             if (accessToken == null) {
@@ -287,11 +291,11 @@ public class AuthService {
             userHeaders.setBearerAuth(accessToken);
             HttpEntity<Void> userRequest = new HttpEntity<>(userHeaders);
             
-            ResponseEntity<Map> userResponse = restTemplate.exchange(
+            ResponseEntity<Map<String, Object>> userResponse = restTemplate.exchange(
                 "https://www.googleapis.com/oauth2/v3/userinfo",
                 HttpMethod.GET,
                 userRequest,
-                Map.class
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
             );
             
             Map<String, Object> googleUser = userResponse.getBody();

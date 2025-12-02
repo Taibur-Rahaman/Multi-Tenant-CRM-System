@@ -1,7 +1,6 @@
 package com.neobit.crm.controller;
 
 import com.neobit.crm.dto.common.ApiResponse;
-import com.neobit.crm.dto.common.PageResponse;
 import com.neobit.crm.dto.tenant.CreateTenantRequest;
 import com.neobit.crm.dto.tenant.TenantDTO;
 import com.neobit.crm.service.TenantService;

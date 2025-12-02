@@ -22,7 +22,6 @@ public class DashboardService {
     
     public Map<String, Object> getDashboardStats() {
         UUID tenantId = TenantContext.getCurrentTenant();
-        Instant last30Days = Instant.now().minus(30, ChronoUnit.DAYS);
         Instant last7Days = Instant.now().minus(7, ChronoUnit.DAYS);
         
         Map<String, Object> stats = new HashMap<>();

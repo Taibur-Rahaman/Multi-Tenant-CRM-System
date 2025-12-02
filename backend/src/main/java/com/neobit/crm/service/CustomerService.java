@@ -14,12 +14,14 @@ import com.neobit.crm.repository.CustomerRepository;
 import com.neobit.crm.repository.TenantRepository;
 import com.neobit.crm.repository.UserRepository;
 import com.neobit.crm.security.TenantContext;
+import com.neobit.crm.service.TelegramNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -31,6 +33,8 @@ public class CustomerService {
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
     private final CustomerMapper customerMapper;
+    private final TelegramNotificationService telegramNotificationService;
+    private final WebSocketNotificationService webSocketNotificationService;
     
     public PageResponse<CustomerDTO> getCustomers(Pageable pageable) {
         UUID tenantId = TenantContext.getCurrentTenant();
@@ -103,7 +107,14 @@ public class CustomerService {
             customer.setOwner(owner);
         }
         
-        return customerMapper.toDTO(customerRepository.save(customer));
+        Customer savedCustomer = customerRepository.save(customer);
+        CustomerDTO customerDTO = customerMapper.toDTO(savedCustomer);
+        
+        // Send notifications
+        telegramNotificationService.notifyCustomerCreated(tenantId, savedCustomer);
+        webSocketNotificationService.notifyCustomerUpdate(tenantId, "created", customerDTO);
+        
+        return customerDTO;
     }
     
     @Transactional
@@ -143,7 +154,14 @@ public class CustomerService {
             customer.setOwner(owner);
         }
         
-        return customerMapper.toDTO(customerRepository.save(customer));
+        Customer savedCustomer = customerRepository.save(customer);
+        CustomerDTO customerDTO = customerMapper.toDTO(savedCustomer);
+        
+        // Send notifications
+        telegramNotificationService.notifyCustomerUpdated(tenantId, savedCustomer);
+        webSocketNotificationService.notifyCustomerUpdate(tenantId, "updated", customerDTO);
+        
+        return customerDTO;
     }
     
     @Transactional
@@ -151,7 +169,15 @@ public class CustomerService {
         UUID tenantId = TenantContext.getCurrentTenant();
         Customer customer = customerRepository.findByIdAndTenantId(customerId, tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", "id", customerId));
+        
+        String customerName = customer.getFirstName() + " " + (customer.getLastName() != null ? customer.getLastName() : "");
+        String customerEmail = customer.getEmail();
+        
         customerRepository.delete(customer);
+        
+        // Send notifications
+        telegramNotificationService.notifyCustomerDeleted(tenantId, customerName, customerEmail);
+        webSocketNotificationService.notifyCustomerUpdate(tenantId, "deleted", java.util.Map.of("id", customerId.toString()));
     }
 }
 

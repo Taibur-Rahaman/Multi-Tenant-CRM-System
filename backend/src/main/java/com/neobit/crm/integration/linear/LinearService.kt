@@ -53,14 +53,17 @@ class LinearService(
     )
     
     fun getLinearConfig(tenantId: UUID): LinearConfig? {
-        val config = integrationConfigRepository.findByTenantIdAndIntegrationType(
+        val configEntity = integrationConfigRepository.findByTenantIdAndIntegrationType(
             tenantId, "linear"
-        ) ?: return null
+        ).orElse(null) ?: return null
         
-        val configMap = objectMapper.readValue(config.configData, Map::class.java)
+        if (configEntity.isEnabled != true) return null
+        
+        val configMap = configEntity.config ?: emptyMap()
+        val credentialsMap = configEntity.credentials ?: emptyMap()
         
         return LinearConfig(
-            apiKey = configMap["apiKey"] as? String ?: return null,
+            apiKey = credentialsMap["apiKey"] as? String ?: return null,
             teamId = configMap["teamId"] as? String
         )
     }

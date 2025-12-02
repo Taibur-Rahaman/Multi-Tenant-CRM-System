@@ -33,5 +33,20 @@ public class PageResponse<T> {
                 .last(page.isLast())
                 .build();
     }
+    
+    /**
+     * Create PageResponse from a Page where content type matches
+     */
+    public static <T> PageResponse<T> of(Page<T> page) {
+        return PageResponse.<T>builder()
+                .content(page.getContent())
+                .page(page.getNumber())
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .build();
+    }
 }
 

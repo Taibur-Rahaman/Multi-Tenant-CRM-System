@@ -1,9 +1,9 @@
 package com.neobit.crm.integration.telegram
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.neobit.crm.entity.IntegrationConfig
 import com.neobit.crm.repository.IntegrationConfigRepository
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -43,13 +43,25 @@ class TelegramService(
     private val restTemplate = RestTemplate()
     private val telegramApiUrl = "https://api.telegram.org/bot"
     
+    @Value("\${integrations.telegram.bot-token:}")
+    private lateinit var defaultBotToken: String
+    
     fun getBotToken(tenantId: UUID): String? {
+        // First try to get from integration config
         val config = integrationConfigRepository.findByTenantIdAndIntegrationType(
             tenantId, "telegram"
-        ) ?: return null
+        ).orElse(null)
         
-        val configMap = objectMapper.readValue(config.configData, Map::class.java)
-        return configMap["botToken"] as? String
+        if (config != null) {
+            val credentials = config.credentials
+            val botToken = credentials["botToken"] as? String
+            if (!botToken.isNullOrBlank()) {
+                return botToken
+            }
+        }
+        
+        // Fallback to application config
+        return if (defaultBotToken.isNotBlank()) defaultBotToken else null
     }
     
     fun sendMessage(tenantId: UUID, request: SendMessageRequest): Boolean {
@@ -63,6 +75,31 @@ class TelegramService(
             "parse_mode" to request.parseMode,
             "reply_to_message_id" to request.replyToMessageId
         ).filterValues { it != null }
+        
+        return try {
+            val headers = HttpHeaders().apply {
+                contentType = MediaType.APPLICATION_JSON
+            }
+            val entity = HttpEntity(body, headers)
+            val response = restTemplate.postForEntity(url, entity, Map::class.java)
+            response.body?.get("ok") == true
+        } catch (e: Exception) {
+            logger.error("Failed to send Telegram message", e)
+            false
+        }
+    }
+    
+    /**
+     * Send message using bot token directly (for notifications)
+     */
+    fun sendMessageWithToken(botToken: String, chatId: Long, text: String, parseMode: String = "HTML"): Boolean {
+        val url = "${telegramApiUrl}${botToken}/sendMessage"
+        
+        val body = mapOf(
+            "chat_id" to chatId,
+            "text" to text,
+            "parse_mode" to parseMode
+        )
         
         return try {
             val headers = HttpHeaders().apply {
@@ -174,6 +211,7 @@ class TelegramService(
         
         return try {
             val response = restTemplate.getForEntity(url, Map::class.java)
+            @Suppress("UNCHECKED_CAST")
             response.body?.get("result") as? Map<String, Any>
         } catch (e: Exception) {
             logger.error("Failed to get bot info", e)
@@ -181,4 +219,3 @@ class TelegramService(
         }
     }
 }
-

@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
@@ -60,8 +59,12 @@ class CustomerControllerTest {
     @WithMockUser(roles = "AGENT")
     void getAllCustomers_ShouldReturnPageOfCustomers() throws Exception {
         // Arrange
-        Page<CustomerDTO> customerPage = new PageImpl<>(List.of(testCustomerDTO));
-        when(customerService.getAllCustomers(any(PageRequest.class))).thenReturn(customerPage);
+        com.neobit.crm.dto.common.PageResponse<CustomerDTO> customerPage = 
+            com.neobit.crm.dto.common.PageResponse.of(
+                new PageImpl<>(List.of(testCustomerDTO)), 
+                List.of(testCustomerDTO)
+            );
+        when(customerService.getCustomers(any(PageRequest.class))).thenReturn(customerPage);
 
         // Act & Assert
         mockMvc.perform(get("/customers")

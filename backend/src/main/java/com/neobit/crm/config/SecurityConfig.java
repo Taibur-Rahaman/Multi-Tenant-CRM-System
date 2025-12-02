@@ -53,6 +53,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/webhooks/**").permitAll()
+                .requestMatchers("/ws/**").permitAll()  // WebSocket endpoint
                 // Admin only endpoints
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/tenants").hasRole("ADMIN")

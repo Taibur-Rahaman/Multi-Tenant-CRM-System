@@ -55,6 +55,7 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=${DB_PASSWORD:-postgres}
       - JWT_SECRET=${JWT_SECRET:-your-256-bit-secret-key-for-jwt-token-signing}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
     ports:

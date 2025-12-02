@@ -8,6 +8,7 @@ import com.neobit.crm.integration.jira.*
 import com.neobit.crm.integration.telephony.*
 import com.neobit.crm.security.TenantContext
 import com.neobit.crm.security.UserPrincipal
+import com.neobit.crm.service.*
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
@@ -21,8 +22,128 @@ class IntegrationController(
     private val calendarService: CalendarService,
     private val telegramService: TelegramService,
     private val jiraService: JiraService,
-    private val telephonyService: TelephonyService
+    private val telephonyService: TelephonyService,
+    private val integrationConfigService: IntegrationConfigService
 ) {
+    
+    // ============ Integration Config Management ============
+    
+    @GetMapping("/status")
+    fun getAllIntegrationStatus(): ResponseEntity<ApiResponse<List<IntegrationStatus>>> {
+        val statuses = integrationConfigService.getAllIntegrations()
+        return ResponseEntity.ok(ApiResponse.success(statuses))
+    }
+    
+    @GetMapping("/status/{integrationType}")
+    fun getIntegrationStatus(
+        @PathVariable integrationType: String
+    ): ResponseEntity<ApiResponse<IntegrationStatus>> {
+        val status = integrationConfigService.getIntegration(integrationType)
+        return if (status != null) {
+            ResponseEntity.ok(ApiResponse.success(status))
+        } else {
+            ResponseEntity.ok(ApiResponse.success(IntegrationStatus(
+                integrationType = integrationType,
+                isEnabled = false,
+                isConfigured = false,
+                lastSyncAt = null,
+                syncStatus = null
+            )))
+        }
+    }
+    
+    @PostMapping("/config/jira")
+    fun saveJiraConfig(
+        @RequestBody request: JiraConfigRequest
+    ): ResponseEntity<ApiResponse<IntegrationStatus>> {
+        val status = integrationConfigService.saveJiraConfig(request)
+        return ResponseEntity.ok(ApiResponse.success(status, "Jira configuration saved"))
+    }
+    
+    @PostMapping("/config")
+    fun saveIntegrationConfig(
+        @RequestBody request: SaveIntegrationConfigRequest
+    ): ResponseEntity<ApiResponse<IntegrationStatus>> {
+        val status = integrationConfigService.saveIntegrationConfig(request)
+        return ResponseEntity.ok(ApiResponse.success(status, "Integration configuration saved"))
+    }
+    
+    @PostMapping("/{integrationType}/enable")
+    fun enableIntegration(
+        @PathVariable integrationType: String
+    ): ResponseEntity<ApiResponse<IntegrationStatus>> {
+        val status = integrationConfigService.enableIntegration(integrationType)
+        return if (status != null) {
+            ResponseEntity.ok(ApiResponse.success(status, "Integration enabled"))
+        } else {
+            ResponseEntity.badRequest().body(ApiResponse.error("Integration not configured"))
+        }
+    }
+    
+    @PostMapping("/{integrationType}/disable")
+    fun disableIntegration(
+        @PathVariable integrationType: String
+    ): ResponseEntity<ApiResponse<IntegrationStatus>> {
+        val status = integrationConfigService.disableIntegration(integrationType)
+        return if (status != null) {
+            ResponseEntity.ok(ApiResponse.success(status, "Integration disabled"))
+        } else {
+            ResponseEntity.badRequest().body(ApiResponse.error("Integration not found"))
+        }
+    }
+    
+    @DeleteMapping("/{integrationType}")
+    fun deleteIntegration(
+        @PathVariable integrationType: String
+    ): ResponseEntity<ApiResponse<Unit>> {
+        val deleted = integrationConfigService.deleteIntegration(integrationType)
+        return if (deleted) {
+            ResponseEntity.ok(ApiResponse.success(Unit, "Integration deleted"))
+        } else {
+            ResponseEntity.badRequest().body(ApiResponse.error("Integration not found"))
+        }
+    }
+    
+    @PostMapping("/jira/test")
+    fun testJiraConnection(): ResponseEntity<ApiResponse<Map<String, Any>>> {
+        return try {
+            val tenantId = TenantContext.getCurrentTenant()
+            val config = jiraService.getJiraConfig(tenantId)
+            if (config != null) {
+                // Try to fetch a single issue to test connection
+                val issues = jiraService.searchIssues(tenantId, "project IS NOT EMPTY", 1)
+                ResponseEntity.ok(ApiResponse.success(mapOf(
+                    "connected" to true,
+                    "baseUrl" to config.baseUrl,
+                    "issueCount" to issues.size
+                ), "Jira connection successful"))
+            } else {
+                ResponseEntity.ok(ApiResponse.success(mapOf(
+                    "connected" to false,
+                    "message" to "Jira not configured"
+                )))
+            }
+        } catch (e: Exception) {
+            ResponseEntity.ok(ApiResponse.success(mapOf(
+                "connected" to false,
+                "error" to (e.message ?: "Connection failed")
+            )))
+        }
+    }
+    
+    @GetMapping("/jira/projects")
+    fun getJiraProjects(): ResponseEntity<ApiResponse<List<Map<String, String>>>> {
+        val tenantId = TenantContext.getCurrentTenant()
+        val config = jiraService.getJiraConfig(tenantId)
+        
+        if (config == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Jira not configured"))
+        }
+        
+        // Get projects from Jira - simplified, would need to implement in JiraService
+        // For now return empty list, the actual project list would be fetched
+        return ResponseEntity.ok(ApiResponse.success(emptyList()))
+    }
     
     // ============ Gmail Endpoints ============
     
@@ -215,13 +336,60 @@ class IntegrationController(
         }
     }
     
-    @GetMapping("/telegram/bot")
+    @GetMapping("/telegram/bot-info")
     fun getTelegramBotInfo(): ResponseEntity<ApiResponse<Map<String, Any>>> {
         val botInfo = telegramService.getBotInfo(TenantContext.getCurrentTenant())
         return if (botInfo != null) {
             ResponseEntity.ok(ApiResponse.success(botInfo))
         } else {
-            ResponseEntity.badRequest().body(ApiResponse.error("Failed to get bot info"))
+            ResponseEntity.badRequest().body(ApiResponse.error("Failed to get bot info or bot not configured"))
+        }
+    }
+    
+    @PostMapping("/telegram/chat-ids")
+    fun configureTelegramChatIds(
+        @RequestBody body: Map<String, Any>
+    ): ResponseEntity<ApiResponse<IntegrationStatus>> {
+        val chatIds = body["chatIds"] as? List<*>
+        if (chatIds == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("chatIds is required"))
+        }
+        
+        val tenantId = TenantContext.getCurrentTenant()
+        val status = integrationConfigService.saveTelegramChatIds(tenantId, chatIds.mapNotNull { 
+            when (it) {
+                is Number -> it.toLong()
+                is String -> it.toLongOrNull()
+                else -> null
+            }
+        })
+        
+        return ResponseEntity.ok(ApiResponse.success(status, "Telegram chat IDs configured"))
+    }
+    
+    @PostMapping("/telegram/test")
+    fun sendTestTelegramMessage(
+        @RequestBody body: Map<String, Any>
+    ): ResponseEntity<ApiResponse<Unit>> {
+        val chatId = (body["chatId"] as? Number)?.toLong()
+        val message = body["message"] as? String
+        
+        if (chatId == null || message == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("chatId and message are required"))
+        }
+        
+        val tenantId = TenantContext.getCurrentTenant()
+        val botToken = telegramService.getBotToken(tenantId)
+        
+        if (botToken == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Telegram bot not configured"))
+        }
+        
+        val sent = telegramService.sendMessageWithToken(botToken, chatId, message)
+        return if (sent) {
+            ResponseEntity.ok(ApiResponse.success(Unit, "Test message sent"))
+        } else {
+            ResponseEntity.badRequest().body(ApiResponse.error("Failed to send test message"))
         }
     }
     

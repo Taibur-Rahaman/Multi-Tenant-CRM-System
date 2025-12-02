@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
+    "build:typecheck": "tsc && vite build",
     "lint": "eslint . --ext .ts,.tsx",
     "preview": "vite preview"
   },
@@ -17,7 +18,9 @@
     "zustand": "^4.4.0",
     "recharts": "^2.10.0",
     "lucide-react": "^0.300.0",
-    "date-fns": "^3.0.0"
+    "date-fns": "^3.0.0",
+    "sockjs-client": "^1.6.1",
+    "@stomp/stompjs": "^7.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

@@ -18,6 +18,14 @@ public class TenantContext {
         return currentTenant.get();
     }
     
+    /**
+     * Get current tenant ID as String (for compatibility with repositories that use String IDs)
+     */
+    public static String getCurrentTenantId() {
+        UUID tenant = currentTenant.get();
+        return tenant != null ? tenant.toString() : null;
+    }
+    
     public static void clear() {
         currentTenant.remove();
     }
