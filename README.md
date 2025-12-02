@@ -1,4 +1,4 @@
-# Nexus CRM - Multi-Tenant CRM System
+# NeoBit CRM - Multi-Tenant CRM System
 
 **Enterprise-Grade Customer Relationship Management Platform**
 
@@ -8,7 +8,7 @@ A professional, multi-tenant CRM system designed for modern sales teams. Manage 
 
 ## 🎯 Product Overview
 
-Nexus CRM is a full-featured Customer Relationship Management system that helps vendors manage their customer interactions, automate workflows, and close more deals through intelligent insights.
+NeoBit CRM is a full-featured Customer Relationship Management system that helps vendors manage their customer interactions, automate workflows, and close more deals through intelligent insights.
 
 ### Key Features
 
@@ -46,7 +46,7 @@ Nexus CRM is a full-featured Customer Relationship Management system that helps 
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         NEXUS CRM PLATFORM                               │
+│                         NEOBIT CRM PLATFORM                              │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
 │   CLIENTS                                                                │
@@ -178,8 +178,8 @@ nexus-crm/
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/nexus-crm.git
-cd nexus-crm
+git clone https://github.com/your-org/neobit-crm.git
+cd neobit-crm
 
 # Copy environment file
 cp env.example .env

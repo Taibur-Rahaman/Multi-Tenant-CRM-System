@@ -99,7 +99,7 @@ const Sidebar: React.FC = () => {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center">
               <Target size={18} className="text-white" />
             </div>
-            <span className="sidebar-logo">Nexus CRM</span>
+            <span className="sidebar-logo">NeoBit CRM</span>
           </div>
         )}
         {collapsed && (
