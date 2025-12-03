@@ -1,0 +1,509 @@
+# NeoBit CRM - CI/CD Pipeline
+# 
+# Triggers: push to main/develop, pull requests
+# Jobs: lint, test, build, docker, deploy
+#
+# Secrets required:
+#   - DOCKER_USERNAME, DOCKER_PASSWORD (Docker Hub)
+#   - GITHUB_TOKEN (auto-provided)
+#   - SONAR_TOKEN (SonarCloud - optional)
+#   - SSH_PRIVATE_KEY (for deployment)
+#   - DEPLOY_HOST, DEPLOY_USER (staging/prod servers)
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ['v*']
+  pull_request:
+    branches: [main, develop]
+
+env:
+  JAVA_VERSION: '17'
+  NODE_VERSION: '18'
+  DOCKER_REGISTRY: docker.io
+  DOCKER_IMAGE_BACKEND: neobit/crm-backend
+  DOCKER_IMAGE_FRONTEND: neobit/crm-frontend
+  DOCKER_IMAGE_TELEGRAM: neobit/crm-telegram-bot
+
+jobs:
+  # ============================================================
+  # LINT JOB - Code quality checks
+  # ============================================================
+  lint:
+    name: Lint & Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for SonarCloud
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      # Backend lint
+      - name: Backend - Check style
+        working-directory: backend
+        run: ./mvnw checkstyle:check -q
+
+      # Frontend lint
+      - name: Frontend - Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend - ESLint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Frontend - Type check
+        working-directory: frontend
+        run: npm run type-check || true
+
+  # ============================================================
+  # TEST JOB - Unit and Integration Tests
+  # ============================================================
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: neobit_test
+          POSTGRES_USER: neobit
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run unit tests
+        working-directory: backend
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/neobit_test
+          SPRING_DATASOURCE_USERNAME: neobit
+          SPRING_DATASOURCE_PASSWORD: test_password
+          SPRING_REDIS_HOST: localhost
+          SPRING_REDIS_PORT: 6379
+        run: ./mvnw test -B
+
+      - name: Run integration tests
+        working-directory: backend
+        env:
+          SPRING_PROFILES_ACTIVE: integration-test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/neobit_test
+          SPRING_DATASOURCE_USERNAME: neobit
+          SPRING_DATASOURCE_PASSWORD: test_password
+        run: ./mvnw verify -Pintegration-tests -B
+
+      - name: Generate coverage report
+        working-directory: backend
+        run: ./mvnw jacoco:report
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: backend/target/site/jacoco/jacoco.xml
+          flags: backend
+          name: backend-coverage
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/target/surefire-reports/
+
+  test-frontend:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run unit tests
+        working-directory: frontend
+        run: npm test -- --coverage --watchAll=false
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+
+  # ============================================================
+  # BUILD JOB - Build artifacts
+  # ============================================================
+  build-backend:
+    name: Build Backend
+    runs-on: ubuntu-latest
+    needs: test-backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build JAR
+        working-directory: backend
+        run: ./mvnw package -DskipTests -B
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/target/*.jar
+
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    needs: test-frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL || '/api' }}
+        run: npm run build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+
+  # ============================================================
+  # DOCKER JOB - Build and push Docker images
+  # ============================================================
+  docker:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/target/
+
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKER_IMAGE_BACKEND }}
+            ${{ env.DOCKER_IMAGE_FRONTEND }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha,prefix=
+
+      # Build Backend Image
+      - name: Build and push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE_BACKEND }}:${{ github.sha }}
+            ${{ env.DOCKER_IMAGE_BACKEND }}:${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build Frontend Image
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE_FRONTEND }}:${{ github.sha }}
+            ${{ env.DOCKER_IMAGE_FRONTEND }}:${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build Telegram Bot Image
+      - name: Build and push Telegram Bot
+        uses: docker/build-push-action@v5
+        with:
+          context: ./telegram-bot
+          file: ./telegram-bot/Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE_TELEGRAM }}:${{ github.sha }}
+            ${{ env.DOCKER_IMAGE_TELEGRAM }}:${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================================
+  # DEPLOY STAGING JOB
+  # ============================================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: docker
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
+      url: https://staging.neobit.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy to staging server
+        env:
+          DEPLOY_HOST: ${{ secrets.STAGING_HOST }}
+          DEPLOY_USER: ${{ secrets.STAGING_USER }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+            cd /opt/neobit-crm
+            
+            # Pull latest images
+            export IMAGE_TAG=${{ github.sha }}
+            docker-compose pull
+            
+            # Deploy with zero downtime
+            docker-compose up -d --no-deps --scale backend=2 backend
+            sleep 30
+            docker-compose up -d --no-deps --scale backend=1 backend
+            
+            # Run migrations
+            docker-compose exec -T backend ./mvnw flyway:migrate
+            
+            # Restart other services
+            docker-compose up -d
+            
+            # Health check
+            curl -f http://localhost:8080/actuator/health || exit 1
+            
+            # Cleanup old images
+            docker image prune -af
+          EOF
+
+  # ============================================================
+  # E2E TESTS JOB
+  # ============================================================
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Cypress
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run Cypress tests
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: frontend
+          config: baseUrl=https://staging.neobit.com
+          wait-on: 'https://staging.neobit.com'
+          wait-on-timeout: 300
+
+      - name: Upload E2E screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: frontend/cypress/screenshots/
+
+      - name: Upload E2E videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-videos
+          path: frontend/cypress/videos/
+
+  # ============================================================
+  # DEPLOY PRODUCTION JOB
+  # ============================================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: docker
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: production
+      url: https://app.neobit.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy to production
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
+          IMAGE_TAG: ${{ github.ref_name }}
+        run: |
+          ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+            cd /opt/neobit-crm
+            
+            # Backup database before deployment
+            docker-compose exec -T postgres pg_dump -U neobit neobit > backup_$(date +%Y%m%d_%H%M%S).sql
+            
+            # Pull and deploy
+            export IMAGE_TAG=${{ github.ref_name }}
+            docker-compose pull
+            docker-compose up -d
+            
+            # Run migrations
+            docker-compose exec -T backend ./mvnw flyway:migrate
+            
+            # Health check
+            for i in {1..30}; do
+              curl -f http://localhost:8080/actuator/health && break
+              sleep 10
+            done
+            
+            # Notify deployment
+            curl -X POST "${{ secrets.SLACK_WEBHOOK }}" \
+              -H 'Content-type: application/json' \
+              -d '{"text":"NeoBit CRM ${{ github.ref_name }} deployed to production"}'
+          EOF
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================================
+  # NOTIFICATION JOB
+  # ============================================================
+  notify:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend, build-backend, build-frontend]
+    if: failure()
+
+    steps:
+      - name: Send Slack notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
