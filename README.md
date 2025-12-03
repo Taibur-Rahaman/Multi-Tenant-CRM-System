@@ -1,337 +1,419 @@
-# NeoBit CRM - Multi-Tenant CRM System
+# NeoBit Multi-Tenant CRM System
 
-**Enterprise-Grade Customer Relationship Management Platform**
-
-A professional, multi-tenant CRM system designed for modern sales teams. Manage leads, deals, customers, and sales pipelines with AI-powered insights and seamless integrations.
-
----
-
-## 🎯 Product Overview
-
-NeoBit CRM is a full-featured Customer Relationship Management system that helps vendors manage their customer interactions, automate workflows, and close more deals through intelligent insights.
-
-### Key Features
-
-| Feature | Description |
-|---------|-------------|
-| 🏢 **Multi-Tenancy** | Complete data isolation for each vendor/organization |
-| 📊 **Sales Pipeline** | Visual Kanban board for deal management |
-| 👥 **Contact Management** | Leads, contacts, and accounts with scoring |
-| 💼 **Deal Tracking** | Opportunities with stages, probability, and forecasting |
-| 📝 **Quotes & Proposals** | Professional quote generation and tracking |
-| 📦 **Product Catalog** | Products with pricing, billing types, and inventory |
-| 📅 **Activity Management** | Calls, emails, meetings, and task scheduling |
-| 🤖 **AI Assistant** | Intelligent insights, summaries, and recommendations |
-| 🔗 **Integrations** | Gmail, Calendar, Jira, Telegram, Twilio |
-| 📱 **Mobile Ready** | Native Android app with Jetpack Compose |
+> **⚠️ SECURITY NOTICE**: This repository contains sensitive API credentials in `.env.example`. Before deploying to production:
+> 1. **Rotate ALL secrets** immediately after initial setup
+> 2. Never commit `.env` files to version control
+> 3. Use a secrets manager (AWS Secrets Manager, HashiCorp Vault) in production
+> 4. Implement secret rotation policies (90-day maximum)
+> 5. Enable audit logging for credential access
 
 ---
 
-## 👥 System Users
+## Project Metadata
 
-| Role | Description | Permissions |
-|------|-------------|-------------|
-| **Super Admin** | Platform owner | Manage all tenants, billing, infrastructure |
-| **Tenant Admin** | Vendor admin | Full control of organization settings, users |
-| **Sales Manager** | Team lead | Manage pipelines, team performance, reports |
-| **Sales Rep** | Sales agent | Manage leads, deals, activities, quotes |
-| **Support Agent** | Customer support | Handle issues, tickets, customer inquiries |
-| **Marketing** | Marketing team | Campaign management, lead sources |
-| **Finance** | Finance access | Quotes, invoices, revenue reports |
-| **Viewer** | Read-only | View dashboards and reports only |
+| Field | Value |
+|-------|-------|
+| **Project** | NeoBit Multi-Tenant CRM System |
+| **Team** | NeoBit |
+| **Prepared by** | Md Taibur Rahaman (1931424642), Md Nazim Uddin (1931478042), Mahin Sarker Bushra (2031636642), Samita Zahin Chowdhury (191190042) |
+| **Supervisor** | Dr. Nabeel Mohammed |
+| **Version** | 2.0 (Phase 1 + Phase 2) |
 
 ---
 
-## 🏗️ Architecture
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Architecture](#architecture)
+3. [Tech Stack](#tech-stack)
+4. [Multi-Tenancy Strategy](#multi-tenancy-strategy)
+5. [Quick Start](#quick-start)
+6. [Development Setup](#development-setup)
+7. [Deployment](#deployment)
+8. [API Documentation](#api-documentation)
+9. [Security](#security)
+10. [Testing](#testing)
+
+---
+
+## Overview
+
+NeoBit CRM is a **multi-tenant SaaS platform** designed to help vendors manage customer relationships, interactions, and communications across multiple channels. The system provides:
+
+### Phase 1 Features
+- 🔐 **OAuth2 Authentication** - Google & GitHub social login with JWT
+- 👥 **Multi-Tenant Architecture** - Strict data isolation per vendor
+- 📧 **Email Integration** - Gmail OAuth2 for email tracking
+- 📅 **Calendar Sync** - Google Calendar integration
+- 🤖 **Telegram Bot** - Customer messaging via Telegram
+- 📞 **Voice/Video Calls** - ZegoCloud WebRTC integration
+- 📋 **Task Management** - ClickUp integration for tickets
+- 📊 **Customer Management** - Full CRM capabilities
+- 📱 **Mobile App** - Android native application
+
+### Phase 2 Features
+- 🧠 **AI Assistant** - Conversational AI for customer support
+- 🎙️ **Voice Processing** - STT/TTS for call transcription
+- 📝 **Meeting Summarization** - AI-powered meeting notes
+- 🔍 **Advanced Search** - Full-text search with Elasticsearch
+- 📈 **Reporting & Analytics** - Custom reports with CSV export
+
+---
+
+## Architecture
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed system architecture diagrams.
+
+### High-Level Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         NEOBIT CRM PLATFORM                              │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│   CLIENTS                                                                │
-│   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐               │
-│   │  Web App     │   │ Android App  │   │  REST API    │               │
-│   │  (React)     │   │  (Kotlin)    │   │  Consumers   │               │
-│   └──────┬───────┘   └──────┬───────┘   └──────┬───────┘               │
-│          │                  │                   │                        │
-│          └──────────────────┼───────────────────┘                        │
-│                             ▼                                            │
-│   ┌─────────────────────────────────────────────────────────────────┐   │
-│   │              API GATEWAY / LOAD BALANCER (Nginx)                 │   │
-│   └─────────────────────────────────────────────────────────────────┘   │
-│                             │                                            │
-│          ┌──────────────────┼──────────────────┐                        │
-│          ▼                  ▼                  ▼                        │
-│   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐               │
-│   │   Backend   │    │ AI Service  │    │  WebSocket  │               │
-│   │ Spring Boot │    │  FastAPI    │    │   Server    │               │
-│   │   :8080     │    │   :8001     │    │             │               │
-│   └──────┬──────┘    └──────┬──────┘    └─────────────┘               │
-│          │                  │                                           │
-│          └──────────────────┼───────────────────────────────────────┐   │
-│                             │                                        │   │
-│   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐             │   │
-│   │ PostgreSQL  │    │   Redis     │    │  OpenAI     │             │   │
-│   │  Database   │    │   Cache     │    │   API       │             │   │
-│   │   :5432     │    │   :6379     │    │             │             │   │
-│   └─────────────┘    └─────────────┘    └─────────────┘             │   │
-│                                                                       │   │
-│   EXTERNAL INTEGRATIONS                                               │   │
-│   ┌───────┐ ┌───────┐ ┌──────────┐ ┌────────┐ ┌─────────┐          │   │
-│   │ Gmail │ │ Jira  │ │ Telegram │ │ Twilio │ │Calendar │          │   │
-│   └───────┘ └───────┘ └──────────┘ └────────┘ └─────────┘          │   │
-│                                                                       │   │
-└───────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 📁 Project Structure
-
-```
-nexus-crm/
-│
-├── backend/                      # Spring Boot REST API
-│   ├── src/main/java/com/neobit/crm/
-│   │   ├── controller/           # REST Controllers
-│   │   ├── service/              # Business Logic
-│   │   ├── repository/           # Data Access (JPA)
-│   │   ├── entity/               # Domain Entities
-│   │   │   ├── User.java         # User with roles
-│   │   │   ├── Pipeline.java     # Sales pipeline
-│   │   │   ├── PipelineStage.java
-│   │   │   ├── Deal.java         # Opportunities
-│   │   │   ├── Product.java      # Product catalog
-│   │   │   ├── Quote.java        # Proposals
-│   │   │   ├── Activity.java     # Activities
-│   │   │   └── ...
-│   │   ├── dto/                  # Data Transfer Objects
-│   │   ├── security/             # JWT & RBAC
-│   │   └── integration/          # External APIs
-│   └── src/main/resources/
-│       └── db/migration/         # Flyway migrations
-│
-├── frontend/                     # React Web Application
-│   └── src/
-│       ├── components/           # Reusable UI Components
-│       │   ├── Sidebar.tsx
-│       │   ├── Topbar.tsx
-│       │   └── Layout.tsx
-│       ├── pages/                # Page Components
-│       │   ├── Dashboard.tsx     # Analytics dashboard
-│       │   ├── Pipeline.tsx      # Kanban board
-│       │   ├── Deals.tsx         # Deal management
-│       │   ├── Contacts.tsx      # Leads & contacts
-│       │   ├── Accounts.tsx      # Company accounts
-│       │   ├── Products.tsx      # Product catalog
-│       │   ├── Quotes.tsx        # Proposals
-│       │   ├── Activities.tsx    # Calendar & activities
-│       │   ├── Tasks.tsx         # Task management
-│       │   ├── Reports.tsx       # Analytics
-│       │   └── ...
-│       ├── services/             # API Clients
-│       ├── store/                # State Management
-│       └── types/                # TypeScript Definitions
-│
-├── ai-service/                   # Python AI Service
-│   └── app/
-│       ├── routers/
-│       │   ├── chat.py           # Conversational AI
-│       │   ├── summary.py        # AI summaries
-│       │   └── voice.py          # STT/TTS
-│       └── services/
-│
-├── android/                      # Mobile Apps
-│   ├── crm-app/                  # Native Kotlin
-│   └── android-app/              # React Native
-│
-└── docker-compose.yml            # Container Orchestration
+┌─────────────────────────────────────────────────────────────────┐
+│                        Load Balancer (Nginx)                     │
+└─────────────────────────────────────────────────────────────────┘
+                                  │
+        ┌─────────────────────────┼─────────────────────────┐
+        ▼                         ▼                         ▼
+┌───────────────┐        ┌───────────────┐        ┌───────────────┐
+│  React SPA    │        │  Spring Boot  │        │  Telegram Bot │
+│  (Frontend)   │        │  (Backend)    │        │  (Worker)     │
+└───────────────┘        └───────────────┘        └───────────────┘
+                                  │
+        ┌─────────────────────────┼─────────────────────────┐
+        ▼                         ▼                         ▼
+┌───────────────┐        ┌───────────────┐        ┌───────────────┐
+│  PostgreSQL   │        │    Redis      │        │ Elasticsearch │
+│  (Database)   │        │   (Cache)     │        │   (Search)    │
+└───────────────┘        └───────────────┘        └───────────────┘
 ```
 
 ---
 
-## 🛠️ Technology Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | React 18, TypeScript, Tailwind CSS, Zustand |
-| **Backend** | Java 21, Spring Boot 3.2, Spring Security |
-| **AI Service** | Python 3.11, FastAPI, OpenAI GPT-4 |
-| **Mobile** | Kotlin, Jetpack Compose, Material 3 |
-| **Database** | PostgreSQL 16 with Full-Text Search |
+| **Frontend** | React 18, Vite, TailwindCSS, React Router, Zustand |
+| **Backend** | Spring Boot 3.2, Java 17, Spring Security, JPA/Hibernate |
+| **Database** | PostgreSQL 15 with row-level security |
 | **Cache** | Redis 7 |
-| **Auth** | JWT, OAuth2 (Google, GitHub) |
-| **Deployment** | Docker, Docker Compose |
+| **Search** | Elasticsearch 8 (Phase 2) |
+| **Mobile** | Android (Java), Retrofit, OkHttp |
+| **Voice/Video** | ZegoCloud WebRTC SDK |
+| **Bot** | Python (python-telegram-bot) or Java |
+| **CI/CD** | GitHub Actions, Docker, Docker Compose |
+| **Monitoring** | Prometheus, Grafana (optional) |
 
 ---
 
-## 🚀 Quick Start
+## Multi-Tenancy Strategy
+
+We implement **Row-Level Isolation with Tenant ID** for the following reasons:
+
+### Why Row-Level Over Schema-Per-Tenant?
+
+| Factor | Row-Level | Schema-Per-Tenant |
+|--------|-----------|-------------------|
+| Scalability | ✅ Better for 100+ tenants | ❌ Schema explosion |
+| Simplicity | ✅ Single schema, easier migrations | ❌ Complex migration scripts |
+| Cost | ✅ Shared resources | ❌ Higher resource usage |
+| Isolation | ⚠️ Application-enforced | ✅ Database-enforced |
+
+### Implementation
+
+1. **Tenant ID Column**: Every table includes `tenant_id` foreign key
+2. **Hibernate Filter**: Automatic tenant filtering on all queries
+3. **Spring Security**: Tenant context from JWT token
+4. **PostgreSQL RLS**: Additional database-level enforcement (optional)
+
+### Migration Steps
+
+```sql
+-- Step 1: Add tenant_id to existing tables
+ALTER TABLE customers ADD COLUMN tenant_id UUID NOT NULL;
+ALTER TABLE interactions ADD COLUMN tenant_id UUID NOT NULL;
+
+-- Step 2: Create indexes for performance
+CREATE INDEX idx_customers_tenant ON customers(tenant_id);
+CREATE INDEX idx_interactions_tenant ON interactions(tenant_id);
+
+-- Step 3: Enable Row-Level Security (optional but recommended)
+ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON customers
+    USING (tenant_id = current_setting('app.tenant_id')::uuid);
+```
+
+---
+
+## Quick Start
 
 ### Prerequisites
-- Docker & Docker Compose
-- Node.js 20+ (for frontend development)
-- Java 21+ (for backend development)
-- Python 3.11+ (for AI service)
 
-### Run with Docker
+- Docker & Docker Compose v2.20+
+- Node.js 18+ (for local frontend dev)
+- Java 17+ (for local backend dev)
+- Android Studio (for mobile dev)
+
+### 1. Clone and Configure
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/neobit-crm.git
+git clone https://github.com/neobit-team/neobit-crm.git
 cd neobit-crm
 
 # Copy environment file
-cp env.example .env
+cp .env.example .env
 
-# Start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
+# Edit .env with your configuration (credentials pre-filled)
 ```
 
-### Access the Application
+### 2. Start All Services
+
+```bash
+# Start entire stack
+docker-compose up -d
+
+# Check status
+docker-compose ps
+
+# View logs
+docker-compose logs -f backend
+```
+
+### 3. Access Applications
 
 | Service | URL |
 |---------|-----|
-| Web App | http://localhost |
-| API | http://localhost:8080/api |
-| AI Service | http://localhost:8001 |
-| API Docs | http://localhost:8080/api/swagger-ui.html |
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8080/api |
+| API Docs (Swagger) | http://localhost:8080/swagger-ui.html |
+| Telegram Webhook | http://localhost:8081/webhook |
+| PostgreSQL | localhost:5432 |
+| Redis | localhost:6379 |
 
-### Demo Credentials
-```
-Email: admin@demo.com
-Password: admin123
-```
-
----
-
-## 🔑 API Endpoints
-
-### Authentication
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/login` | User login |
-| POST | `/api/auth/register` | User registration |
-| POST | `/api/auth/refresh` | Refresh token |
-| GET | `/api/auth/oauth/providers` | OAuth providers |
-
-### Pipeline & Deals
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/pipelines` | List pipelines |
-| POST | `/api/pipelines` | Create pipeline |
-| GET | `/api/deals` | List deals |
-| POST | `/api/deals` | Create deal |
-| PATCH | `/api/deals/{id}/stage` | Move deal to stage |
-
-### Contacts & Accounts
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/contacts` | List contacts |
-| POST | `/api/contacts` | Create contact |
-| GET | `/api/accounts` | List accounts |
-| POST | `/api/accounts` | Create account |
-
-### Products & Quotes
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/products` | List products |
-| POST | `/api/products` | Create product |
-| GET | `/api/quotes` | List quotes |
-| POST | `/api/quotes` | Create quote |
-| POST | `/api/quotes/{id}/send` | Send quote |
-
-### AI Service
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/chat/` | AI chat assistant |
-| POST | `/chat/insights` | Customer insights |
-| POST | `/summary/generate` | Generate summary |
-| POST | `/voice/speech-to-text` | Speech recognition |
-
----
-
-## 📊 Database Schema
-
-### Core Entities
+### 4. Default Admin Credentials
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│     tenants     │     │      users      │     │    pipelines    │
-├─────────────────┤     ├─────────────────┤     ├─────────────────┤
-│ id              │◄────│ tenant_id       │     │ tenant_id       │
-│ name            │     │ email           │     │ name            │
-│ slug            │     │ role            │     │ is_default      │
-│ settings        │     │ ...             │     │ stages[]        │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-                              │
-         ┌────────────────────┼────────────────────┐
-         │                    │                    │
-         ▼                    ▼                    ▼
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│    accounts     │  │    contacts     │  │      deals      │
-├─────────────────┤  ├─────────────────┤  ├─────────────────┤
-│ tenant_id       │  │ tenant_id       │  │ pipeline_id     │
-│ name            │  │ account_id      │  │ stage_id        │
-│ industry        │  │ first_name      │  │ name            │
-│ owner_id        │  │ lead_status     │  │ amount          │
-│ ...             │  │ lead_score      │  │ probability     │
-└─────────────────┘  │ ...             │  │ owner_id        │
-                     └─────────────────┘  │ ...             │
-                                          └─────────────────┘
+Platform Admin:
+  Email: admin@neobit.com
+  Password: Admin@123!
+
+Demo Vendor:
+  Email: vendor@demo.com
+  Password: Vendor@123!
 ```
 
 ---
 
-## 🧪 Testing
+## Development Setup
+
+### Backend (Spring Boot)
 
 ```bash
-# Backend tests
-cd backend && ./mvnw test
+cd backend
 
-# Frontend tests
-cd frontend && npm test
+# Install dependencies
+./mvnw clean install -DskipTests
 
-# AI Service tests
-cd ai-service && pytest
+# Run with dev profile
+./mvnw spring-boot:run -Dspring.profiles.active=dev
+
+# Run tests
+./mvnw test
+```
+
+### Frontend (React)
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start dev server
+npm run dev
+
+# Build for production
+npm run build
+
+# Run tests
+npm test
+```
+
+### Mobile (Android)
+
+```bash
+# Open in Android Studio
+cd mobile/android
+
+# Build debug APK
+./gradlew assembleDebug
+
+# Run tests
+./gradlew test
+```
+
+### Telegram Bot
+
+```bash
+cd telegram-bot
+
+# Python version
+pip install -r requirements.txt
+python bot.py
+
+# Or Java version
+./mvnw spring-boot:run
 ```
 
 ---
 
-## 📈 Success Metrics
+## Deployment
 
-| Metric | Goal | Status |
-|--------|------|--------|
-| Tenant Data Isolation | 100% | ✅ |
-| API Response Time | < 200ms | ✅ |
-| Test Coverage | ≥ 70% | ✅ |
-| Uptime | 99.9% | ✅ |
+### Docker Compose (Recommended for Dev/Staging)
 
----
+```bash
+# Production build and deploy
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
-## 🔒 Security
+# Scale backend instances
+docker-compose up -d --scale backend=3
+```
 
-- **Authentication**: OAuth2 + JWT tokens
-- **Authorization**: Role-based access control (RBAC)
-- **Multi-Tenancy**: Row-level security with tenant_id
-- **Data Protection**: AES-256 encryption at rest
-- **API Security**: Rate limiting, CORS, input validation
+### Kubernetes (Production)
 
----
+```bash
+# Apply manifests
+kubectl apply -f k8s/
 
-## 📄 License
-
-MIT License - See [LICENSE](LICENSE) file
+# Check deployment status
+kubectl get pods -n neobit
+```
 
 ---
 
-## 👥 Team
+## API Documentation
 
-Built with ❤️ by Team NeoBit
+Full API documentation available at:
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **OpenAPI Spec**: http://localhost:8080/v3/api-docs
+- **Markdown**: [API_DOC.md](./API_DOC.md)
 
-**Course:** CSE 327 - Software Engineering  
-**University:** North South University  
-**Supervisor:** Dr. Nabeel Mohammed
+### Quick Examples
+
+```bash
+# Login
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"vendor@demo.com","password":"Vendor@123!"}'
+
+# Get Customers (with JWT)
+curl http://localhost:8080/api/customers \
+  -H "Authorization: Bearer <token>"
+```
+
+---
+
+## Security
+
+### Authentication Flow
+
+1. **Social Login**: Google/GitHub OAuth2 → Backend validates → Issues JWT
+2. **JWT Tokens**: Access token (15 min) + Refresh token (7 days)
+3. **Token Refresh**: Silent refresh before expiry
+4. **Revocation**: Logout invalidates refresh token in Redis
+
+### Role-Based Access Control (RBAC)
+
+| Role | Permissions |
+|------|-------------|
+| `PLATFORM_ADMIN` | Full system access, manage tenants |
+| `VENDOR_ADMIN` | Manage own tenant, users, settings |
+| `AGENT` | Access assigned customers, log interactions |
+
+### Secret Rotation
+
+```bash
+# Rotate OAuth secrets (example)
+1. Generate new secret in provider console
+2. Update .env with new secret
+3. Restart services: docker-compose restart backend
+4. Revoke old secret in provider console
+```
+
+---
+
+## Testing
+
+See [TEST_PLAN.md](./TEST_PLAN.md) for comprehensive testing strategy.
+
+```bash
+# Run all tests
+./mvnw test                    # Backend unit tests
+npm test                       # Frontend unit tests
+npm run test:e2e              # E2E with Cypress
+
+# Generate coverage report
+./mvnw jacoco:report
+```
+
+---
+
+## Project Structure
+
+```
+neobit-crm/
+├── backend/                    # Spring Boot application
+│   ├── src/main/java/
+│   │   └── com/neobit/crm/
+│   │       ├── config/        # Security, OAuth, multitenancy
+│   │       ├── controller/    # REST controllers
+│   │       ├── service/       # Business logic
+│   │       ├── repository/    # Data access
+│   │       ├── model/         # Entity classes
+│   │       └── dto/           # Data transfer objects
+│   └── src/test/
+├── frontend/                   # React application
+│   ├── src/
+│   │   ├── components/        # Reusable components
+│   │   ├── pages/             # Page components
+│   │   ├── hooks/             # Custom hooks
+│   │   ├── store/             # Zustand state
+│   │   └── api/               # API client
+│   └── tests/
+├── mobile/                     # Android application
+│   └── android/
+│       └── app/src/main/java/
+├── telegram-bot/               # Telegram bot service
+├── docker/                     # Docker configurations
+├── k8s/                        # Kubernetes manifests
+├── .github/workflows/          # CI/CD pipelines
+└── docs/                       # Additional documentation
+```
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open Pull Request
+
+---
+
+## License
+
+This project is developed for academic purposes as part of the coursework supervised by Dr. Nabeel Mohammed.
+
+---
+
+## Support
+
+For issues and questions:
+- Create a GitHub Issue
+- Contact team at: neobit-team@example.com
+
+---
+
+**Built with ❤️ by Team NeoBit**
+
