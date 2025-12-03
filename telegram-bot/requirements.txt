@@ -1,0 +1,27 @@
+# NeoBit CRM - Telegram Bot Dependencies
+
+# Telegram Bot API
+python-telegram-bot==20.7
+
+# Web framework for webhook
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+
+# HTTP client for backend API calls
+httpx==0.26.0
+
+# Redis for rate limiting and caching
+redis==5.0.1
+
+# Environment variables
+python-dotenv==1.0.0
+
+# Logging and monitoring
+structlog==24.1.0
+
+# Async utilities
+asyncio==3.4.3
+
+# Type hints
+typing-extensions==4.9.0
+
