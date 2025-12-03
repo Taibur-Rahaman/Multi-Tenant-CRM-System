@@ -8,7 +8,7 @@
 -- EXTENSIONS
 -- ============================================================
 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";      -- UUID generation
+CREAE EXTENSION IF NOT EXISTS "uuid-ossp";      -- UUID generation
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";       -- Encryption functions
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";        -- Trigram for fuzzy search
 
@@ -718,4 +718,5 @@ COMMENT ON TABLE audit_logs IS 'System audit trail for compliance';
 
 -- Read-only user for reporting
 -- GRANT SELECT ON ALL TABLES IN SCHEMA public TO neobit_readonly;
+
 
