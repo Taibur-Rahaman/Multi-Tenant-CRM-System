@@ -13,8 +13,7 @@ Security:
 - Webhook secret validation
 - Rate limiting per chat
 """
-
-import os
+impor os
 import logging
 import hashlib
 import hmac
@@ -611,4 +610,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
