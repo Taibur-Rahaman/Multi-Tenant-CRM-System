@@ -1,1 +1,12 @@
-{ "recommendations": ["expo.vscode-expo-tools"] }
+public class TenantManager {
+
+    private static String currentTenant = "tenant_1";
+
+    public static void setTenant(String tenantId) {
+        currentTenant = tenantId;
+    }
+
+    public static String getTenant() {
+        return currentTenant;
+    }
+}
