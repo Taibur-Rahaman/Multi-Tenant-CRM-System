@@ -156,8 +156,8 @@ CREATE POLICY tenant_isolation ON customers
 ### 1. Clone and Configure
 
 ```bash
-git clone https://github.com/neobit-team/neobit-crm.git
-cd neobit-crm
+git clone https://github.com/Taibur-Rahaman/Multi-Tenant-CRM-System.git
+cd Multi-Tenant-CRM-System
 
 # Copy environment file
 cp .env.example .env
@@ -416,4 +416,8 @@ For issues and questions:
 ---
 
 **Built with ❤️ by Team NeoBit**
+
+## Author
+
+**Md Taibur Rahaman** — [GitHub](https://github.com/Taibur-Rahaman) (Team NeoBit, NSU CSE)
 
